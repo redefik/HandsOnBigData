@@ -1,0 +1,16 @@
+Il contenitore SET viene usato per la rappresentazione di insiemi.
+N.B. Contenitori di stringhe diversi non possono essere tra loro mescolati.
+
+SADD rock "pink floyd" --> crea un elemento con chiave rock a cui è associato
+                           un insieme costituito dall'elemento "pink floyd".
+                           Nota che quando la stringa ha spazi i doppi apici
+                           sono obbligatori.
+SADD rock "queen" --> aggiunge l'elemento "queen" all'insieme rock
+SADD rock "mozart"
+SREM rock "mozart" --> rimuove l'elemento mozart dall'insieme associato allo
+                       elemento rock
+Sugli insiemi sono definite le operazioni classiche dell'insiemistica:
+SCARD rock --> cardinalità dell'insieme
+SUNION rock pop --> unione
+SINTER rock pop --> intersezione
+SDIFF rock pop --> differenza

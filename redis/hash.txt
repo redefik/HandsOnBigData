@@ -1,0 +1,13 @@
+Il tipo di dato hash si utilizza quando vogliamo associare ad un elemento 
+dei campi con contatore.
+
+HSET u1h rock 1 -> crea un elemento con chiave u1h e pone al valore 1 il suo
+                   campo rock.
+HSET u1h pop 2 -> aggiunge all'elemento u1h il campo pop e lo popola con il
+                  valore 2
+HGET u1h rock -> restituisce il valore del campo rock (1)
+HKEYS u1h -> restituisce i campi associati a u1h (rock e pop)
+HEXISTS u1h rock -> controlla se un dato campo esiste
+HDEL u1h rock -> rimuove il campo rock. Per rimuovere invece l'elemento si usa
+                 DEL.
+HVALS -> lista i valori dei vari campi.

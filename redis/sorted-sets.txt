@@ -1,0 +1,16 @@
+Un SORTED SET è simile ad un SET, con la differenza che ogni elemento ha
+associato uno score che viene usato per ordinare gli elementi dall'insieme dal
+più piccolo al più grande. In caso di parità, viene prima l'elemento inserito
+per primo.
+
+ZADD dragonball 1 goku --> crea un elemento con chiave dragonball con
+                     insieme contenente l'elemento goku con score 1
+ZADD dragonball 1 vegeta --> ...
+ZRANK dragonball goku --> 0
+ZRANK dragonball vegeta --> 1
+
+ZINCRBY dragonball 1 goku --> incrementa di 1 lo score di goku, che quindi
+                              scende in classifica
+ZRANK dragonball goku --> adesso ritorna 1
+ZADD dragonball 3 piccolo --> ...
+ZRANGE dragonball 0 -1 --> stampa la classifica completa

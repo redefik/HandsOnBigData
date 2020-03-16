@@ -1,0 +1,16 @@
+Redis è un data store key-value in-memory comunemente impiegato per implementare
+sistemi di caching.
+In Redis una chiave è una qualsiasi stringa ASCII
+Il valore può essere una STRINGA o un CONTENITORE di STRINGH(hash, list, set,
+sorted set)
+
+
+SET userId1 federico -> crea elemento con chiave userId1 e valore federico
+GET userId1 -> restituisce il valore associato alla chiave userId1 (federico)
+APPEND userId1 viglietta -> aggiunge viglietta in coda al valore associato
+                            alla chiave userId1 (risultato: federicoviglietta)
+EXISTS userId1 -> ritorna 0 se la chiave non è presente, altrimenti 1
+SETNX userId2 mario -> inserisce la coppia (userId2, mario) se non esiste una
+                       coppia con chiave userId2
+DEL userId1 -> cancella l'elemento con chiave userId1
+EXPIRE userId1 4 -> cancella l'elemento con chiave userId1 ma dopo 4 secondi

@@ -1,0 +1,12 @@
+RPUSH nosql dynamo --> inserisce dynamo nella lista nosql
+RPUSH nosql riak --> aggiunge riak nella lista nosql (R=RIGHT a destra)
+LPUSH nosql cassandra --> aggiunge cassandra nella lista nosql (L=LEFT a sinistra)
+LLEN nosql --> stampa la lunghezza della lista
+LRANGE nosql 0 -1 --> stampa il contenuto della lista (lo slicing è Python-like)
+LPUSH nosql cassandra --> una lista, diversamente da un insieme, può contenere
+                          duplicati...
+...ecco perché nella rimozione bisogna specificare quante copie di un dato
+rimuovere.
+LREM nosql 1 cassandra --> rimuove solo uno dei due "cassandra"
+LPOP --> rimuove il primo elemento
+RPOP --> rimuove l'ultimo elemento
