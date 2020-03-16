@@ -1,0 +1,70 @@
+MongoDB è un data store a documento.
+Ogni database Mongo è un insieme di COLLECTION. Una COLLECTION è un raggruppamento
+di DOCUMENTI. L'utilizzatore codifica i documenti mongo in formato JSON. Essi
+tuttavia vengono salvati internamente nel formato BSON, che è l'estensione
+binaria del JSON.
+
+
+CREAZIONE DATABASE
+use cms (crea il database cms se non esiste oppure si sposta al suo interno)
+
+INSERIMENTO
+db.cms.insert({ name : "tutorial", type : "video", length : 125, path : 
+"/video.flv", metadata : {quality : "480p", color : "b/n", private : false } })
+--> Inserisce nella collection cms un documento con un certo numero di campi.
+Notare che esiste la possibilità di specificare come campi stringhe, numeri,
+booleani, dizionari...
+Al momento dell'inserimento, Mongo assegna al documento un ObjectId univoco.
+
+QUERY
+- Il tipo di query più semplice è quello in cui si richiedono i documenti in cui
+  uno o più campi hanno un certo valore
+  db.cms.find({type:"video", private:false}) --> restituisce i contenuti di tipo
+                                                 "video" e con private a false
+- Un po' più complicate sono le query in cui il campo di ricerca è numerico
+	db.cms.find({length: {$gt:100}}) --> restituisce i contenuti con lunghezza
+	                                     maggiore di 25
+- Se invece si è interessati a trovare i documenti in cui un certo campo esiste,
+	si usa $exists:
+	db.cms.find({metadata:{$exists:true}})
+
+- Più sofisticata è la query in cui si mettono in or le condizioni:
+	db.cms.find({$or:[{type:"video"},{private:false}]})	                                     
+
+PER RICORDARE:
+db.collection.find({})
+- E' un or ==> $or:[{},{}]
+- Altrimenti campo1:?, campo2:?
+  ?={} se bisogna lavorare con numeri, con esistenze
+  ?=valore se siamo interessati ad un valore specifico
+ 
+Una variante di find è findOne, che restituisce il primo matching
+Entrambe le istruzioni restituiscono un CURSORE.
+Sul cursore si possono applicare delle operazioni per: ordinare i risultati, 
+limitarli...
+
+AGGIORNAMENTO
+db.cms.update({type:"video"},{$set:{metadata.quality:"hd"}})
+$set crea l'attributo prima di impostare il valore, se l'attributo non esiste
+L'istruzione precedente modifica la prima occorrenza. Per modificarle tutte 
+bisogna aggiungere {multi:true}.
+Se bisogna aggiungere elementi ad un array bisogna utilizzare:
+{$push:{nome array: "nuovo elemento"}}
+
+PER RICORDARE
+db.cms.update({condizione},{set o push o altro},{multi:true})
+
+
+CANCELLAZIONE
+db.cms.remove({type:"video"}) --> rimuove tutti i contenuti di tipo "video"
+db.cms.drop() --> rimuove l'intera collection con tutti i suoi documenti
+
+ARCHITETTURA DISTRIBUITA
+Per scalare orizzontalmente, MongoDB effettua il partizionamento (sharding) dei
+dati. Per garantire tolleranza ai guasti, ogni shard è a sua volta strutturato
+come un Replica Set costituito da una replica primaria ed un certo numero di
+repliche secondarie. Completano l'architettura i Config Servers, che mantengono
+i metadati che indicano la posizione dei vari chunk e i Router, che sono gli
+entry point per le applicazioni. All'interno del Replica Set il protocollo di
+consistenza impiegato è un Primary-Backup asincrono.
+
