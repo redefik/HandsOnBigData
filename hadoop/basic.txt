@@ -1,0 +1,53 @@
+PRIMI PASSI
+- Avviare la rete di container costituita da master e worker
+- Formattare HDFS: hdfs namenode -format
+- Avviare HDFS: $HADOOP_HOME/sbin/start_dfs. Questo comando per default crea
+  anche una replica ombra del NameNode.
+- A questo punto su localhost:9870 è possibile visualizzare l'interfaccia web
+  di Hadoop
+
+STILE GENERALE DELLA SINTASSI:
+hfds dfs -<comandoUnix>. Ad esempio:
+
+hdfs dfs -ls / --> lista il contenuto della directory principale
+hdfs dfs -mv /file /democontent --> rinomina file in democontent (Unix-like)
+hdfs dfs -cat /democontent --> stampa il contenuto di democontent
+
+TRASFERIMENTO DA/VERSO HDFS
+-Per copiare file dall'esterno all'interno di HDFS si usa put:
+hdfs dfs -put file /file --> copia il file di nome file dal file system corrente
+                             nella directory principale di HDFS dandogli nome
+                             file
+-Per copiare file da HDFS verso l'esterno si usa get:
+hdfs dfs -get /folder/democontent fromhdfs
+                             
+APPEND
+hdfs dfs -appendToFile file /democontent --> scrive in coda a democontent il
+                                             contenuto del file di nome file
+CREAZIONE DI DIRECTORY
+hdfs dfs -mkdir /folder --> crea la directory folder nella directory principale
+N.B. Le directory, come si può notare dall'interfaccia web di hadoop, non hanno
+     un blocco corrispondente che le rappresenta.
+     
+CREAZIONE DI SNAPSHOT
+Quando si effettua la snapshot di un file all'istante t, HDFS non crea una copia
+del file, bensì tiene traccia delle modifiche apportate al file dall'istante t
+in poi così da poter fornire poi su richiesta la versione opportuna. Questo serve
+ad alleggerire il costo dell'operazione di back-up.
+
+1)ABILITAZIONE DELLO SNAPSHOT
+  hdfs dfsadmin -allowSnapshot /toSnap
+2)CREAZIONE SNAPSHOT
+  hdfs dfs -createSnapshot /toSnap my_snap
+3)VISUALIZZAZIONE SNAPSHOT
+	hdfs dfs -ls /toSnap/.snapshot --> Dentro .snapshot c'è my_snap
+4)PRELEVARE UN FILE DALLA CARTELLA FOTOGRAFATA
+	hdfs dfs -cp -ptopax /toSnap/.snapshot/my_snap/afile /test
+5)CANCELLAZIONE SNAPSHOT
+	hdfs dfs -deleteSnapshot /toSnap my_snap
+6)DISABILITAZIONE SNAPSHOT
+  hdfs dfsadmin -disallowSnapshot /toSnap
+  
+MODIFICA DEL GRADO DI REPLICAZIONE
+hdfs dfs -setrep 1 /norepl --> setta a 1 il grado di replicazione dei file
+                               ATTUALMENTE presenti nella directory norepl
