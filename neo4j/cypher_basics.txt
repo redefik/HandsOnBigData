@@ -1,0 +1,106 @@
+
+-------------------
+|CREAZIONE DI NODI|
+-------------------
+
+// Crea un nodo con label Calciatore avente due property (name, born)
+// ft è una variabile che ci serve per poter scrivere il RETURN sottostante
+// che comunque non è obbligatorio
+CREATE (ft:Footballer {name:'Francesco Totti', born:1976})
+RETURN ft
+CREATE (asr:Team {name:'A.S.Roma', born:1927})
+
+----------------------------
+|CREAZIONE DI UNA RELAZIONE|
+----------------------------
+
+MATCH (totti:Footballer {name:'Francesco Totti'})
+MATCH (roma:Team {name:'A.S.Roma'})
+CREATE (totti)-[:PLAYED_IN]->(roma)
+RETURN totti
+
+n.b.: La CREATE effettua un BLIND INSERT, ovvero crea l'intero pattern, anche se
+      in parte già esiste nel database.
+      
+Quindi, se vogliamo creare una relazione simile per Del Piero...
+CREATE (adp:Footballer {name:'Alessandro Del Piero', born:1974})-[rel:PLAYED_IN]->(it:Team {name: 'Italia', born:1898})
+RETURN name, rel, it
+
+-----------------------------------
+|CANCELLAZIONE DI NODI E RELAZIONI|
+-----------------------------------
+
+Per cancellare un nodo o una relazione è sufficiente cercare l'oggetto in questione
+tramite MATCH e darlo in input alla keyword DELETE.
+ATTENZIONE: I nodi possono essere cancellati solo se non partecipano ad una
+            relazione.
+Per cancellare un nodo sganciandolo dalle relazioni che lo coinvolgono è
+necessario prima digitare la keyword DETACH
+// Ad esempio, per cancellare tutto il grafo...
+MATCH (a)
+DETACH DELETE a
+
+------------------------------
+|MANIPOLAZIONE DELLE PROPERTY|
+------------------------------
+Per Aggiungere, Rimuovere o Modificare le property si usa la keyword SET.
+
+// Aggiunge alla relazione :PLAYED_IN tra Totti e la Roma la propery since
+// che specifica da quando Totti gioca con la Roma.
+MATCH (:Footballer {name:'Francesco Totti'})-[rel:PLAYED_IN]->(:Team {name:'A.S.Roma'})
+SET rel.since = 1993
+
+// Analogamente, se vogliamo sostituire since con due property che indicano
+// quando Totti ha iniziato a giocare con la Roma e quando ha smesso, possiamo
+// fare così (con null la property viene rimossa)
+MATCH (:Footballer {name:'Francesco Totti'})-[rel:PLAYED_IN]->(:Team {name:'A.S.Roma'})
+SET rel.since = null, rel.from = 1993, rel.to = 2017
+
+------------------------
+|FILTRAGGIO DELLE QUERY|
+------------------------
+
+-WHERE
+ // Giocatori nati prima del 1999
+ MATCH (fb:Footballer) WHERE fb.born <= 1998 RETURN fb
+ // Giocatori nati tra il 1950 e il 1980 (anche qui Cypher è "visuale")
+ MATCH (fb:Footballer) WHERE 1950 <= fb.born <= 1980
+ // Giocatori nati prima del 1980 escluso Gianni Rivera
+ MATCH (fb:Footballer) WHERE fb.born <= 1999 AND NOT fb.name = 'Gianni Rivera' RETURN fb
+ // Relazioni PLAYED_IN dove sono presenti gli attributi from e to
+ MATCH (fb:Footballer)-[r:PLAYED_IN]->(t:Team) WHERE exists(r.from) AND exists(r.to)
+ RETURN fb, r, t
+ ...
+ A WHERE possono essere anche affiancate le keyword CONTAINS, STARTS WITH,
+ ENDS WITH per le ricerche su stringhe o IN per le richerche sulle liste.
+ // Giocatori della Roma che hanno giocato con l'Italia
+ MATCH (rp:Footballer)-[:PLAYED_IN]->(Team {name: 'A.S.Roma'}) 
+ WHERE exists((rp)-[:PLAYED_IN]->(:Team {name: 'Italia'})) RETURN rp
+
+-OPTIONAL MATCH
+ // Supponiamo di voler ottenere i giocatori della Roma e nel caso in cui hanno
+ // giocato con l'Italia l'anno del debutto in nazionale. In casi come questi
+ // si usa OPTIONAL MATCH.
+ MATCH (p:Footballer)-[:PLAYED_IN]->(:Team {name:'A.S.Roma'}) 
+ OPTIONAL MATCH (p)-[r:PLAYED_IN]->(:Team {name:'Italia'}) RETURN p, r.debut
+ 
+-CARDINALITA' DELLE RELAZIONI
+ Poniamo di voler trovare tutti i percorsi che portano da Del Piero a Totti
+ indipendentemente dal verso della relazione
+ MATCH (ft:Footballer {name: 'Francesco Totti'})-[r*]-(adp:Footballer {name: 'Alessandro Del   Piero'}) 
+ RETURN ft, r, adp
+ Lo * sta ad indicare che il percorso può avere una qualsiasi lunghezza.
+ Se invece poniamo *..3 selezioneremo solo i percorsi che permettono di andare
+ da Totti a Del Piero in massimo 3 hop.
+ 
+---------------------------------
+|Esempio: Trivial Recommendation|
+---------------------------------
+Grafo:
+uA ha acquistato i prodotti p1,p2,p3
+uB ha acquistato i prodotti p1,p5,p6
+uC ha acquistato i prodotti p2,p4,p5
+
+Vogliamo sapere quali prodotti hanno acquistato gli utenti che hanno acquistato
+i prodotti comprati da uA (p4,p5,p6)
+MATCH (:User {name: 'userA'})-[:BUYED]->(:Product)<-[:BUYED]-(:User)-[:BUYED]->(rp:Product) RETURN rp
