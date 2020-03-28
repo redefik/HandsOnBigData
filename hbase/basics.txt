@@ -91,6 +91,8 @@ La SCANSIONE si effettua in modo analogo ma con le seguenti differenze:
   // Specificare colonne d'interesse
   get.addColumn(Bytes.toBytes(family), Bytes.toBytes(column));
   // Se si è interessati a tutte le versioni
+  // NOTA: Ricorda in questo caso di settare il versioning anche nella creazione
+  // della tabella (setMaxVersions(Integer.MAX_VALUE))
   get.setMaxVersions(Integer.MAX_VALUE);
   // Istanziare oggetto Table come descritto in precedenza
   ...
