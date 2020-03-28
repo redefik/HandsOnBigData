@@ -1,0 +1,130 @@
+-------
+|INTRO|
+-------
+
+HBase è il clone open-source di Google BigTable. Come tale, si basa sugli
+stessi principi del data store di Google. In sostanza HBase differisce da BigTable
+per la terminologia impiegata e per i componenti, anch'essi open-source, su cui
+poggia. In particolare:
+-Le tablet sono chiamate REGIONI;
+-I tablet server sono chiamati REGION SERVER;
+-Il ruolo che in BigTable era svolto da Chubby qui è svolto da Zookeeper;
+-Le SSTable diventano HFile e le memtable memstore
+-La memorizzazione interna dei dati e dei file di log è ad opera di HDFS.
+
+--------------------
+|API Java per HBase|
+--------------------
+
+-Usare Java 8 e non versioni superiori perché sono meno supportate
+-Usare Maven:
+ -Inserire nel pom.xml la dependency da HBase
+ -Può inoltre essere necessario inserire nel pom.xml la versione di Java
+  esempio:
+  <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
+-Abilitare il logging inserendo in resources un file log4j.properties
+-Dal logging potrebbe emergere la necessità di esporre delle porte nel container
+ Docker. Nel caso, esporre quelle porte e riavviare il container.
+
+----------------
+|CONFIGURAZIONE|
+----------------
+// Istanziare un oggetto Configuration
+Configuration configuration = HBaseConfiguration.create();
+// Settare le seguenti property dell'oggetto: hbase.zookeeper.quorum (hostname
+  dell'host su cui è in esecuzione ZK), hbase.zookeeper.property.clientPort (porta
+  di ascolto di ZK), hbase.master (indirizzo ip e porta del master) 
+// Istanziare la connessione
+Connection connection = ConnessionFactory.createInstance(configuration);
+NOTA: In genere, i thread di un'applicazione usano tutti la stessa connessione.
+      Ogni thread ha invece il proprio Admin e la propria Table...
+
+-------------------------
+|OPERAZIONI SULLO SCHEMA| (oggetto di riferimento: Admin)
+-------------------------
+- Admin admin = connection.getAdmin();
+- TableName tableName = TableName.valueOf(nomeDellaTabella);
+- Per la CREAZIONE DI UNA TABELLA:
+  HTableDescriptor tableDescriptor = new HTableDescriptor(tableName);
+  Per ogni column family:
+  HColumnDescriptor familyDescriptor = new HColumnDescriptor(familyName);
+  tableDescriptor.addFamily(familyDescriptor)
+  admin.createTable(tableDescriptor);
+- Per la CANCELLAZIONE DI UNA TABELLA:
+  admin.disableTable(tableName);
+  admin.deleteTable(tableName);
+- admin.close() (magari chiusura automatica tramite try-with-resources)
+
+---------------------
+|OPERAZIONI SUI DATI| (oggetto di riferimento: Table)
+---------------------
+In generale:
+- Si istanzia un oggetto avente il nome dell'operazione che si vuole fare:
+  Put, Get, Delete... passando come input nel costruttore la rowKey 
+  convertita in byteArray.
+- Si aggiungono le colonne su cui si vuole operare attraverso il metodo
+  addColumn, che riceve sempre in input le versioni byte array di nome della
+  famiglia e nome della colonna. Nel caso della put c'è un terzo input che
+  corrisponde al valore.
+- TableName tableName = TableName.valueOf(nomeDellaTabella);
+- Table table = connection.getTable(tableName);
+- Si invoca su table il metodo omonimo dell'oggetto precedentemente istanziato
+  passando quest'ultimo come input. (get() restituisce un oggetto Result)
+- table.close() (magari chiusura automatica tramite try-with-resources)
+
+La SCANSIONE si effettua in modo analogo ma con le seguenti differenze:
+- Scan() non riceve nulla in input, in quanto si fa riferimento alla tabella
+  nel suo complesso e non ad una riga specifica;
+- Il metodo da invocare di Table è getScanner e restituisce un ResultScanner
+  (lista di Result iterabili) che deve essere chiuso al termine dell'operazione.
+
+
+-------------------  
+|FOCUS SULLE QUERY|
+-------------------
+- ACCESSO BASATO SU ROW KEY
+  // Istanziare Get
+  Get get = new Get(Bytes.toBytes(rowKey));
+  // Specificare colonne d'interesse
+  get.addColumn(Bytes.toBytes(family), Bytes.toBytes(column));
+  // Se si è interessati a tutte le versioni
+  get.setMaxVersions(Integer.MAX_VALUE);
+  // Istanziare oggetto Table come descritto in precedenza
+  ...
+  // Ottenere il risultato della query
+  Result result = table.get(get);
+  // Lettura del risultato
+  // values contiene il valore o i valori corrispondenti alla colonna specificata
+  List<Cell> values = result.getColumnCells(Bytes.toBytes(family), Bytes.toBytes(column));
+  // Per convertire un oggetto Cell in stringa
+  new String(CellUtil.clonevalue(cell))
+  // Chiudere l'oggetto Table come descritto sopra
+  ...
+- ACCESSO BASATO SU PREFISSO ROW KEY (tutte le righe la cui chiave inizia per...)
+  Poiché in questo caso abbiamo a che fare con un range, non usiamo Get bensì
+  Scan.
+  // Istanziare Scan
+  Scan scan = new Scan();
+  // Specificare colonne d'interesse ed eventualmente multi-versioning esattamente
+  // come per la Get
+  ...
+  // Si specifica il prefisso della row key
+  scan.withStartRow(Bytes.toBytes(rowKeyPrefix));
+  scan.setRowPrefixFilter(Bytes.toBytes(rowKeyPrefix));
+  // Si ottiene il risultato della query
+  ResultScanner scanner = table.getScanner(scan);
+  // ResultScanner è una lista di Result, per cui poi si può procedere come per
+  // la Get.
+	NOTA: Se non si specifica la riga di partenza, lo scan viene fatto su tutta
+	      la tabella.
+- ACCESSO BASATO SU PREFISSO ROW KEY E VALORE DI UNA COLONNA (tutte le righe
+  la cui chiave inizia per ... e la colonna x ha un valore ...)
+  I passi sono come quelli del caso precedente, con la differenza che bisognerà
+  anche specificare un FILTRO:
+  ...
+  scan.setFilter(filter);
+  NOTA: I filtri si possono usare non sono per filtrare in base ai valori delle
+        colonne (vedi ad esempio i MultiRowRangeFilter).
