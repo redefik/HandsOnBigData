@@ -1,0 +1,60 @@
+Neo4J è stato scritto in Java, per cui le API Java sono in generale le migliori
+da usare. A questo proposito, ci sono diversi driver disponibili (JDBC, Spring
+Data...)
+
+-----------------------
+|Spring Data per Neo4j|
+-----------------------
+
+--Mapping Nodi-Oggetti
+
+@NodeEntity
+public class Customer {
+	@Id
+	@GeneratedValue
+	private Long id;
+	private Long externalId;
+	private String name;
+	
+	@Relationship(type = "PURCHASED")
+	private List<Product> products;
+}
+
+@NodeEntity
+public class Product {
+	@Id
+	@GeneratedValue
+	private Long id;
+	private Long externalId;
+	private String description;
+	
+	@Relationship(type = "PURCHASED", direction = INCOMING)
+	private List<Customer> customers;
+}
+
+NOTE:
+1) Le relazioni sono per default OUTGOING (uscenti)
+2) E' sconsigliato usare nella business logic l'id interno generato da Neo4j
+   ecco perché è stato introdotto l'external id.
+3) Se la relazione ha delle proprietà deve essere modellata in una classe
+   a parte
+4) Per default Neo4j ha una politica di fetching lazy solo dal secondo livello
+   in giù (il caricamento del Customer provoca il caricamento dei Product
+           acquistati e delle loro property ma non dei customer correlati, per
+           cui il loop infinito non si verifica)
+
+--Query
+
+Per le query valgono gli stessi discorsi fatti con i database relazionali. Le
+interrogazioni più semplici si realizzano tramite le query method, quelle più
+complesse vengono specificate in linguaggio Cypher attraverso l'annotazione
+@Query.
+
+public interface ProductRepository extends Neo4jRepository<Product, Long> {
+
+    Optional<Product> findByExternalId(String productId); // query method
+
+    @Query(value = "MATCH (c:Customer)-[:PURCHASED]->(:Product)<-[:PURCHASED]-(:Customer)-[:PURCHASED]->(rp:Product) WHERE c.externalId = $0 RETURN rp")
+    List<Product> getProductPurchasedByCustomersThatPurchasedTheSameProducts(String customerId);
+}
+
