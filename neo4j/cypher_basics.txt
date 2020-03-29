@@ -103,4 +103,4 @@ uC ha acquistato i prodotti p2,p4,p5
 
 Vogliamo sapere quali prodotti hanno acquistato gli utenti che hanno acquistato
 i prodotti comprati da uA (p4,p5,p6)
-MATCH (:User {name: 'userA'})-[:BUYED]->(:Product)<-[:BUYED]-(:User)-[:BUYED]->(rp:Product) RETURN rp
+MATCH (:User {name: 'userA'})-[:BOUGHT]->(:Product)<-[:BOUGHT]-(:User)-[:BOUGHT]->(rp:Product) RETURN rp

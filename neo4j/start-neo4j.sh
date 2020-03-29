@@ -3,4 +3,4 @@
 # connetterci al database tramite il browser. La porta 7867 è la porta Bolt, che
 # è usata dal browser per interagire con il database.
 
-docker run -d -p 7474:7474 -p 7687:7687 --volume=$HOME/neo4j/data:/data --name my_neo neo4j:3.0
+docker run -d -p 7474:7474 -p 7687:7687 --volume=$HOME/neo4j/data:/data --name my_neo neo4j
