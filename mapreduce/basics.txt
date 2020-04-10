@@ -1,0 +1,150 @@
+SCHELETRO DI UN PROGRAMMA MAPREDUCE
+
+--------
+|MAPPER|
+--------
+
+public class MyMapper extends Mapper<K1, V1, K2, V2> {
+
+	@Override
+	protected void map(K1 key, V1 value, Context context) {
+		...
+		context.write(...);
+	}
+
+
+}
+
+K1 = tipo della chiave di input (spesso Object perché irrilevante)
+V1 = tipo del valore di input
+K2 = tipo della chiave di output
+V2 = tipo del valore di output
+
+Un mapper opera su uno split del dataset di input (e.g. un chunk)
+La map() opera invece su un record ovvero una porzione di split (e.g. linea di testo)
+
+Extra: se si vuole che il mapper utilizzi un parametro fornito dall'utente che
+       lancia il job, si può inserire questo parametro dentro l'oggetto Configuration
+       associato al job, leggerlo dalla funzione setup di Mapper e usarlo per
+       valorizzare un attributo della classe Mapper.
+
+---------
+|REDUCER|
+---------
+
+
+public class MyReducer extends Reducer<K1, V1, K2, V2> {
+
+	@Override
+	protected void reduce(K1 key, Iterator<V1> values, Context context) {
+		...
+		context.write(...);
+	}
+
+}
+
+K1 = tipo della chiave di input (output del mapper)
+V1 = tipo del valore di input (output del mapper)
+K2 = tipo della chiave di output
+V2 = valore della chiave di output
+
+La funzione reduce() riceve i valori associati ad una chiave intermedia.
+
+
+
+------------------------
+|TIPI DI INPUT E OUTPUT|
+------------------------
+
+I tipi delle chiavi e dei valori non sono quelli di default di Java. Sono tipi
+forniti ad hoc da Hadoop per ottimizzare la serializzazione necessaria per
+trasmettere le coppie nella rete del cluster di deployment. Eventualmente, si
+possono definire dei tipi personalizzati purché implementino l'interfaccia
+Writable. Per implementare l'interfaccia Writable bisogna implementare i metodi
+write() e readFields(). Spesso bisogna anche implementare un metodo toString()
+per far sì che la stampa del valore o della chiave sia leggibile.
+
+-------------
+|PARTITIONER|
+-------------
+
+public class MyPartitioner extends Partitioner<K1, V1> {
+
+	public int getPartition(Text key, Text value, int i) {
+		// ritorna l'indice del reducer in base alla chiave secondo qualche criterio
+		...
+	}
+
+
+}
+
+K1=tipo della chiave di output del mapper
+V1=tipo del valore di output del mapper
+
+-------------------
+|CLASSE PRINCIPALE|
+-------------------
+
+public static void main(String[] args) {
+	Configuration configuration = new Configuration();
+	Job job = Job.getInstance(configuration, "Nome del job");
+	job.setJarByClass(ClassePrincipale.class);
+	
+	// Setting della mapper class
+	job.setMapperClass(ClasseMapper.class);
+	// Se si vuole usare l'identity mapper basta specificaere Mapper.class
+	
+	// Setting della reducer class
+	job.setReducerClass(ClasseReducer.class);
+	// Se si vuole usare l'identity mapper basta specificaere Reducer.class
+	// Setting del numero di reducer
+	job.setNumReduceTasks(...);
+	
+	// Bisogna sempre settare i tipi di output
+	job.setOutputKeyClass(...);
+	job.setOutputValueClass(...);
+	// Se l'output del mapper è diverso dall'output del reducer bisogna anche
+	// settare i tipi di output del mapper
+	job.setMapOutputKeyClass(...);
+	job.setMapOutputValueClass(...);
+	
+	// Bisogna poi fornire le classi InputFormat e OutputFormat il cui compito
+	// è quello di gestire lettura e scrittura da/verso il file system.
+	// In particolare le classi InputFormat sono quelle che dividono il dataset
+	// di input in split e gli split in record.
+	job.setInputFormatClass(...)
+	job.setOutputFormatClass(...);
+	
+	// I metodi addInputPath, setInputPaths, setOutputPath di queste classi vengono
+	// usati per specificare quali sono i dati di input e qual è la directory di
+	// output (N.B. questa directory NON deve essere preesistente).
+	
+	// I format più comuni sono TextInputFormat e TextOutputFormat che lavorano
+	// con i file di testo. TextInputFormat suddivide i dati di input in chunk
+	// e i chunk in linee. Quando  i file sono di piccole dimensioni può essere
+	// conveniente usare SequenceFileInputFormat e SequenceFileOutputFormat.
+	
+	// Setting del combiner
+	job.setCombinerClass(...);
+	
+	// Setting del partitioner
+	job.setPartitionerClass(...); // HashPartitioner è quello di default
+	
+	// Se il Partitioner in questione è il TotalOrderPartitioner bisogna fornire
+	// il partition file, che è quello usato nel campionamento dello spazio delle
+	// chiavi finalizzato alla distribuzione delle coppie intermedie tra i reducer
+	// TotalOrderPartitioner.setPartitionFile(job.getConfiguration(), partitionFile);
+	// Poi bisogna effettuare il campionamento
+	// InputSampler.writePartitionFile(job, new InputSampler.RandomSampler<K,V>(freq, numSamples));
+	// freq = probabilità con cui viene presa una chiave, K=tipo della chiave di
+	// output e del valore di output dello stage MapReduce precedente
+	
+	// Esecuzione del job
+	// Restituisce true se il job ha successo, false altrimenti
+	// L'argomento specifica se l'esecuzione deve essere verbose oppure no.
+	job.waitForCompletion(true);
+
+	
+}
+
+
