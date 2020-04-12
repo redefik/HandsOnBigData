@@ -1,0 +1,105 @@
+BASI DI PROGRAMMAZIONE CON GLI RDD IN JAVA
+
+-----------------------
+|CREAZIONE DI RDD BASE|
+-----------------------
+
+1) Per fare esperimenti e test, gli RDD vengono creati "parallelizzando" oggetti
+   Java:
+   JavaRDD<Integer> rdd = sc.parallelize(Arrays.asList(1,2,3,4));
+2) Nei casi reali gli RDD vengono creati a partire da dataset esterni:
+   JavaRDD<String> fileLines = sc.textFile(...);
+   //textFile() è il metodo più semplice e restituisce IL RIFERIMENTO ad un RDD
+   //costituito dalle linee di un file di testo
+   
+---------------------
+|TRASFORMAZIONI BASE|
+---------------------
+
+ELEMENT-WISE
+
+-map(): 
+ riceve in input una funzione e la applica a ciascun elemento del RDD.
+ Gli elementi del RDD prodotto sono i valori ottenuti applicando la
+ funzione di input agli elementi del RDD genitore.
+ JavaRDD<Integer> rdd = sc.parallelize(Arrays.asList(1,2,3,4));
+ JavaRDD<Integer> rddDerived = rdd.map(x -> x * x);
+ 
+-flatMap():
+ come una map() con la differenza che da ogni elemento del RDD padre
+ vengono ricavati due o più output. In particolare, la funzione di
+ input deve restituire un'istanza di Iterator:
+ JavaRDD<String> fileWords = fileLines.flatMap(l -> Arrays.asList(l.split(" ")).iterator());
+ L'aggettivo "flat" indica il fatto che l'oggetto prodotto non è un RDD di liste
+ bensì un RDD formato dagli elementi di tutte le liste computate.
+
+-filter():
+ restituisce l'RDD formato solamente dagli elementi che passano il controllo
+ della funzione di input.
+ JavaRDD<String> goodWords = fileWords.filter(w -> w.contains("good"));
+ 
+-sample(): Estrae una serie di campioni dal RDD. Riceve in input un booleano
+           che indica se l'estrazione è con rimpiazzo o senza rimpiazzo, un float
+           che indica la frazione di dati e un seed per la replicabilità dello
+           esperimento.
+ 
+PSEUDO-SET
+
+-union(): diversamente dall'unione matematica non rimuove i duplicati
+-intersection(): rimuove i duplicati
+-subtract(), cartesian()...
+
+-------------
+|AZIONI BASE|
+-------------
+
+-reduce(): combina gli elementi di un RDD applicando la funzione di input. Il
+					 tipo di ritorno della funzione deve coincidere con il tipo degli
+					 elementi del RDD.
+           rddDerived.reduce((x,y) -> x + y);
+           
+-take(n): carica n elementi qualsiasi del RDD
+
+-top(n): carica i primi n elementi del RDD
+
+-count(): restituisce la cardinalità del RDD
+
+
+-collect(): carica l'intero contenuto del RDD => Viene usata solo in fase di
+            testing.
+            
+-saveAsTextFile(): duale di textFile. Il salvataggio può essere fatto su file
+                   system locale o su HDFS.
+
+Altre azioni sono specifiche per le coppie (chiave, valore) o per gli RDD numerici
+
+-------------
+|PERSISTENZA|
+-------------
+
+Il metodo persist() viene usato per rendere persistente in memoria un RDD.
+Questa operazione è conveniente quando si vuole riusare più volte l'RDD.
+persist() riceve in input un livello di storage.
+Livelli di storage:
+-StorageLevel.MEMORY_ONLY;
+-StorageLevel.MEMORY_ONLY_SER;
+-StorageLevel.MEMORY_AND_DISK;
+-StorageLevel.MEMORY_AND_DISK_SER;
+-DISK_ONLY.
+
+(cache() = persist(StorageLevel.MEMORY_ONLY))
+
+SER indica che gli RDD vengono serializzati prima di essere resi persistenti,
+questo per ottimizzare l'utilizzo dello spazio di storage. Si consiglia di
+utilizzare librerie di serializzazione veloci come Kryo (per farlo bisogna settare
+una property opportuna nella configurazione di Spark).
+Se la memoria si esaurisce, Spark provvede automaticamente a rimuovere le vecchie
+partizioni secondo una politica LRU. Se gli RDD rimossi possedevano una strategia
+di persistenza MEMORY_ONLY, quando ce ne sarà nuovamente bisogno saranno ricalcolati
+da zero. Se invece la strategia era MEMORY_AND_DISK, gli RDD rimossi saranno
+salvati su disco.
+Per replicare i dati su 2 macchine bisogna aggiungere _2 allo storage level.
+La replicazione è utile se si vogliono accelerare i tempi di fault recovery.
+
+ 
+            
