@@ -102,4 +102,59 @@ Per replicare i dati su 2 macchine bisogna aggiungere _2 allo storage level.
 La replicazione è utile se si vogliono accelerare i tempi di fault recovery.
 
  
-            
+N.B.:Quando persist() viene invocata,l'RDD non viene materializzato. L'RDD viene
+materializzato solo nel momento in cui viene invocata la prima azione su di esso.
+
+----------
+|PAIR RDD|
+----------
+
+I pair RDD sono RDD costituiti da coppie (chiave, valore). Per creare un pair
+RDD si usa il metodo mapToPair() e la classe Scala Tuple2:
+
+fileWords.mapToPair(w -> new Tuple2(w, 1)); // nel classico Word Count
+
+I pair supportano delle trasformazioni speciali tra cui aggregazioni e
+raggruppamenti.
+
+Il principale metodo di AGGREGAZIONE è reduceByKey()
+
+reduceByKey() -> restituisce un RDD in cui ogni elemento è una coppia (k, v),
+                 dove v è un'aggregazione di valori aventi la chiave k.
+                 N.B.: mentre reduce() è una azione, reduceByKey è una trasformazione.
+                 
+NOTA: reduceByKey() applica automaticamente il Combining. In ogni caso, l'utente
+      può configurare un combiner personalizzato attraverso combineByKey()...
+      
+Il principale metodo di RAGGRUPPAMENTO è join()
+
+join() effettua un inner join:
+
+----------------         ---------------
+|STORE| ADDRESS|         |STORE| RATING|      
+----------------         ---------------      ----------
+|X    | AX1    |         |X    |RX     |      |X|AX1,RX|
+|Y    | AY1    |   JOIN  |Y    |RY     |  =>  |Y|AY1,RY|
+|Y    | AY2    |         ---------------      |Y|AY2,RY|
+|Z    | AZ1    |                              ----------
+----------------
+
+
+In alternativa si possono usare:
+- leftOuterJoin():               
+--------------------    
+|X    | AX1, RX    |    
+|Y    | AY1, RY    |
+|Y    | AY2, RY    |
+|Z    | AZ1, None  |                              
+--------------------
+
+-rightOuterJOin():  
+--------------------    
+|X    | AX1, RX    |    
+|Y    | AY1, RY    |
+|Y    | AY2, RY    |
+--------------------
+
+NOTA: Potrebbe essere necessario ottimizzare la manipolazione dei pair RDD
+      agendo sul partizionamento...
