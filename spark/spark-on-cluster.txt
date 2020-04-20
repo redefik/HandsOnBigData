@@ -1,0 +1,104 @@
+-----------------------------------
+|ESECUZIONE DI SPARK SU UN CLUSTER|
+-----------------------------------
+
+1) L'utente passa a Spark il jar dell'applicazione tramite spark-submit.
+2) spark-submit lancia il programma driver
+3) Il driver contatta il cluster manager per ottenere le risorse per l'avvio
+   degli executor
+4) Il cluster manager avvia gli executor per conto del driver
+5) Il driver invia agli executor i task da eseguire
+6) Gli executor eseguono i task inviati
+7) All'uscita, il driver termina gli executor e rilascia le risorse del cluster
+   manager.
+
+|IL COMANDO spark-submit
+
+struttura (nel caso in cui si usa Java)
+
+spark-submit [options] <app jar> [app options]
+
+Le option principali sono:
+--master: specifica lo URL del cluster a cui connettersi
+--deploy-mode: client (driver esegue sulla stessa macchina su cui è stato 
+               eseguito il comando) oppure cluster
+--class: Classe principale dell'applicazione Java
+--name: nome visualizzato sull'interfaccia web di Spark
+
+Le app options sono in sostanza gli argomenti del programma applicativo.
+
+|HADOOP YARN
+
+YARN è uno dei cluster manager supportati. E' conveniente eseguire Spark su
+YARN quando per esempio si vuole che Spark acceda all'HDFS.
+
+In breve, l'esecuzione su YARN avviene nel modo seguente:
+- Si setta una variabile d'ambiente che punta alla directory di configurazione
+  di Hadoop
+- Si lancia spark-submit con l'opzione: --master yarn
+
+Quando si sottomette l'applicazione si possono settare alcuni parametri:
+--num-executors: Numero di Executor (2 per default)
+--executor-memory: Memoria usata da ogni Executor (1 GB per default)
+--executor-cores: Numero di core per Executor (1 per default)
+
+(Esiste anche uno script per il deployment su EC2)
+
+|MONITORAGGIO DI SPARK
+
+Le impostazioni di default di Spark funzionano out-of-the box in molti casi.
+Ci sono comunque degli aspetti su cui l'utente può voler/dover agire.
+
+Per effettuare il tuning può essere utile accedere innanzitutto alla UI di Spark
+Ogni SparkContext lancia una Web UI, per default sulla porta 4040.
+Questa interfaccia però risulta visibile solo per la durata dell'applicazione
+per default. Se la si vuole visualizzare anche dopo, allora bisogna settare
+spark.eventLog.enabled a true, creare la directory spark-events in tmp e avviare
+start-history-server.sh. Verrà creata un'interfaccia Web alla porta 18080.
+
+Attenzione: 
+
+Alcuni parametri interessanti da osservare:
+- Per ogni STAGE sono riportate le statistiche relative ai relativi TASK.
+  Un buon punto di partenza potrebbe essere controllare se si verifica un
+  fenomeno di skew: alcuni task durano sensibilmente più di altri, alcuni fanno
+  molte più scritture...
+- Nella pagina Storage troviamo informazioni sugli RDD resi persistenti. Qui può
+  essere interessante quali RDD fittano in memoria, quali no...
+- Nella pagina Executors si può per esempio controllare quanti Executor sono
+  stati effettivamente eseguiti e come si sono comportati.
+  
+|PARAMETRI DI TUNING
+
+LIVELLO DI PARALLELISMO
+Per default Spark cerca di settare il livello di parallelismo che più ritiene
+opportuno. Ad esempio, se si ha a che fare con un RDD derivante da un file HDFS
+le partizioni in genere coincidono con i blocchi dell'HDFS. Ci sono però degli
+scenari in cui conviene ridefinire manualmente il numero di partizioni.
+Uno scenario tipico è quello in cui si FILTRA un dataset molto grande estrendo
+un sottoinsieme di dati molto più piccolo. In questo caso, quando si effettua il
+filtraggio, Spark non aggiusta il numero di partizioni. Quindi può capitare per
+esempio che da 10^6 partizionati in 10 parti estraggo 10 campioni e mi ritrovo
+con una partizione per ogni campione. Per ridurre il numero di partizioni si
+usa coalesce(). Se si vuole invece aumentare il numero di partizioni, si usa
+repartition().
+
+SERIALIZZAZIONE
+Per default, Spark usa il serializzatore built-in di Java. Volendo, si può usare
+il serializzatore Kryo, che è più efficiente.
+
+GESTIONE DELLA MEMORIA
+Ogni Executor utilizza la memoria per:
+-memorizzazione degli RDD (60 % per default)
+-buffer intermedi per shuffle e aggregazioni (20 % per default)
+-codice utente (20 % per default)
+
+Le percentuali sono configurabili. Per esempio, se l'applicazione alloca oggetti
+molto grandi, può avere senso incrementare la percentuale relativa.
+Oltre a ciò, è a volte determinante il livello di storage che si sceglie nel
+momento in cui si invoca persist(), come abbiamo visto.
+
+HARDWARE PROVISIONING
+Tendenzialmente, Spark scala linearmente: se si raddoppiano le risorse, si
+raddoppia la velocità d'esecuzione.
+
