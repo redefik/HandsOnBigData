@@ -1,0 +1,25 @@
+-------------------
+|INSTALLAZIONE PIG|
+-------------------
+
+- Scaricare una versione stabile compatibile con la versione di Hadoop in uso
+
+- Estrarre il tar con tar xzf
+
+- Posizionare la directory in un punto opportuno
+
+- Aggiungere i file binari alle variabili d'ambiente:
+  export PATH=$PATH:/usr/local/pig/bin in bashrc per esempio
+
+- source bashrc
+
+- pig -help per verificare che l'installazione è andata a buon fine
+
+- Per eseguire il comando pig, bisogna esportare
+  HADOOP_CONF_DIR.
+
+- Provare poi con pig -brief, che dovrebbe aprire
+  grunt: la shell interattiva
+
+- Per uscire dalla shell quit
+
