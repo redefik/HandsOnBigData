@@ -1,0 +1,165 @@
+---------------
+|INSTALLAZIONE|
+---------------
+
+Scaricare la release (file .tgz), estrarla e mettere la cartella in una
+posizione opportuna nel filesystem locale.
+
+--------------------
+|AVVIO DI UN BROKER|
+--------------------
+
+-Innanzitutto, bisogna avviare Zookeeper, che è il servizio usato da Kafka
+per coordinare i vari componenti dell'architettura distribuita.
+
+bin/zookeeper-server-start-sh config/zookeeper.properties &
+
+Per interrompere Zookeeper usare lo script duale zookeeper-server-stop.sh
+
+-Poi si avvia il server kafka:
+
+bin/kafka-server-start.sh config/server.properties
+
+I file in config sono file di configurazione di default
+
+Per interrompere il server usare lo script duale kafka-server-stop.sh
+
+-----------------------
+|CREAZIONE DI UN TOPIC|
+-----------------------
+
+bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 \
+--partitions 1 --topic test
+
+Come si vede si crea un topic con una sola partizione e fattore di replicazione 1
+di nome test.
+
+Verificare la riuscita del comando con --list:
+bin/kafka-topics.sh --list --bootstrap-server localhost:9092
+
+---------------------
+|PUBLISH E SUBSCRIBE|
+---------------------
+
+Il seguente comando avvia una console che pubblica i messaggi inseriti dall'utente
+all'interno del topic precedentemente creato.
+
+bin/kafka-console-producer.sh --bootstrap-server localhost:9092 --topic test
+
+Il seguente comando invece istanzia un consumer relativo al topic test:
+
+bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic test
+
+Per provare eseguire i due comandi sue due console separate, produrre messaggi
+sul producer e controllare che appaiano lato consumer.
+
+-----------------------------
+|AVVIO DI 2 ULTERIORI BROKER|
+-----------------------------
+
+Innanzitutto, duplichiamo il file config/server.properties:
+
+> cp config/server.properties config/server-1.properties
+> cp config/server.properties config/server-2.properties
+
+e modifichiamo le seguenti properties all'interno dei file:
+
+config/server-1.properties:
+    broker.id=1
+    listeners=PLAINTEXT://:9093
+    log.dirs=/tmp/kafka-logs-1
+ 
+config/server-2.properties:
+    broker.id=2
+    listeners=PLAINTEXT://:9094
+    log.dirs=/tmp/kafka-logs-2
+    
+Praticamente dobbiamo assegnare ai nuovi broker un id univoco, una porta diversa
+da quella precedente e un file di log diverso per evitare conflitti (in questo
+caso i broker sono sulla stessa macchina).
+
+Poi li avviamo sempre con kafka-server-start.sh ma stavolta specificano i file
+di configurazione appena creati.
+
+----------------------
+|TOLLERANZA AI GUASTI|
+----------------------
+
+Per testare la tolleranza ai guasti del cluster creato, creiamo un topic con
+fattore di replicazione 3.
+
+bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 3\
+--partitions 1 --topic my-replicated-topic
+
+Per controllare come questo topic è distribuito si può usare --describe:
+
+bin/kafka-topics.sh --describe --bootstrap-server localhost:9092 --topic my-replicated-test
+
+Il comando mostra quale dei tre nodi agisce da leader, quali sono i nodi su cui
+sono posizionate le tre repliche e quali sono allineate (isr).
+(In questo caso, la partizione è una sola, ma se ne avessimo avuta più di una
+avremmo avuto informazioni generali sulle varie partizioni).
+
+Proviamo poi publish e subscribe producendo due messaggi nel topic creato e
+consumandoli tramite kafka-console-consumer.sh.
+
+A questo punto, killiamo il server leader. Ad esempio, se è il server 0, lo
+possiamo fare nel modo seguente:
+
+ps aux | grep server.properties
+
+kill -9 <idProcesso>
+
+Poi con --describe (sulla porta dei server rimasti attivi) possiamo osservare
+che c'è stato uno switch nel ruolo di leader.
+
+---------------
+|KAFKA CONNECT|
+---------------
+
+Kafka Connect  un tool che permette di importare dati in Kafka da sorgenti
+esterne o esportarli verso altri sistemi.
+
+ESEMPIO: IMPORTARE DATI DA UN FILE IN UN KAFKA TOPIC E DAL KAKFA TOPIC DENTRO
+UN FILE.
+
+Innanzitutto lanciamo un broker o un cluster di broker come sopra.
+Creiamo un file test.txt con delle linee di testo nella directory di Kafka.
+
+Lanciamo il comando:
+
+bin/connect-standalone.sh config/connect-standalone.properties \
+config/connect-file-source.properties config/connect-file-sink.properties
+
+Spiegazione del comando:
+- Vengono lanciati due connector, uno per l'import e l'altro per l'export.
+  Entrambi eseguono in modalità standalone, cioè in un singolo processo locale.
+- I tre file sono file di configurazione predefiniti contenuti nella cartella
+  config di kafka.
+- Il primo indica tra le altre cose il broker a cui si associano i connettori
+- Il secondo è il file di configurazione del SOURCE CONNECTOR, che contiene:
+
+  name=local-file-source # nome univoco del source connector
+  connector.class=FileStreamSource # tipo di connettore
+  tasks.max=1
+  file=test.txt # file da cui importare i dati
+  topic=connect-test # topic in cui verranno pubblicate le linee del file di input
+  
+- Il secondo è il file di configurazione del SINK CONNECTOR, che contiene:
+  
+  name=local-file-sink # nome univoco del sink connector
+  connector.class=FileStreamSink # tipo di sink connector
+  tasks.max=1
+  file=test.sink.txt # File di output
+  topics=connect-test # Topic da cui vengono prelevati i dati da inserire nel file
+                        di output.
+                        
+Dopo l'avvio dei connector, si può controllare nel file test.sink.txt se
+l'ingestion è effettivamente avvenuta. NB: Le linee del file restano comunque
+disponibili per la console consumer o per altri tipi di consumer...
+
+
+
+
+
+
