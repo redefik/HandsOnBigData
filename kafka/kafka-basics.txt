@@ -133,7 +133,8 @@ config/connect-file-source.properties config/connect-file-sink.properties
 
 Spiegazione del comando:
 - Vengono lanciati due connector, uno per l'import e l'altro per l'export.
-  Entrambi eseguono in modalità standalone, cioè in un singolo processo locale.
+  La modalità di esecuzione è standalone, ovvero i due connector eseguono come
+  thread separati all'interno del medesimo processo.
 - I tre file sono file di configurazione predefiniti contenuti nella cartella
   config di kafka.
 - Il primo indica tra le altre cose il broker a cui si associano i connettori
@@ -157,6 +158,8 @@ Spiegazione del comando:
 Dopo l'avvio dei connector, si può controllare nel file test.sink.txt se
 l'ingestion è effettivamente avvenuta. NB: Le linee del file restano comunque
 disponibili per la console consumer o per altri tipi di consumer...
+
+
 
 
 
