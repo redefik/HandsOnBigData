@@ -40,4 +40,6 @@ Ogni processor ha delle relationships e queste vanno settate. Nel caso di PutHDF
 ci sono due relatonships: success e failure. Le possiamo settare ad Auto-Terminated
 perché il processore PutHDFS rappresenta un pozzo nel nostro semplice DataFlow.
 
-
+NOTA: la property keep source file di GetFile è impostata a false. Ciò implica
+che quando vengono importati i file nell'HDFS, essi vengono rimossi dal file
+system locale.
