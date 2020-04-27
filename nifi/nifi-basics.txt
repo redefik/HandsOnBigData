@@ -1,0 +1,43 @@
+---------------
+|INSTALLAZIONE|
+---------------
+
+Scaricare la cartella compressa ed estrarla dove lo si ritiene opportuno
+
+-------
+|AVVIO|
+-------
+
+bin/nifi.sh run (impiega un po' di tempo ad avviarsi)
+
+L'interfaccia di NiFi risulta disponibile all'indirizzo
+http://localhost:8080/nifi
+La porta 8080 può essere modificata agendo sul file nifi.properties contenuto
+nella directory conf.
+
+---------------------------------------------
+|DATA INGESTION DA FILE SYSTEM LOCALE A HDFS|
+---------------------------------------------
+
+Trascinare l'icona in alto a sinistra nel canvas per aggiungere un PROCESSOR.
+Selezionare il processor GetFile
+
+Una volta inserito nel canvas, il processore può essere configurato cliccando
+il tasto destro e andando su Configure. In properties ci sono le varie proprietà
+associate al Processor. In grassetto ci sono quelle obbligatorie. Nel nostro caso
+abbiamo ad esempio la directory di input.
+
+Trascinare l'icona in alto a sinistra nel canvas per aggiungere un nuovo PROCESSOR.
+Selezionare il processor PutHDFS.
+Questo processor ha solamente tre properties obbligatorie, ma c'è una property
+non obbligatorie che spesso è fondamentale settare: Hadoop Configuration Resources
+Qui bisogna specificare, separati da virgola, i path dei file hdfs-site.xml e
+core-site.xml.
+
+Una volta creati i due processor si crea la connection tra GetFile e PutHDFS.
+In questo modo viene settata la Relationship Success del processor GetFile.
+Ogni processor ha delle relationships e queste vanno settate. Nel caso di PutHDFS
+ci sono due relatonships: success e failure. Le possiamo settare ad Auto-Terminated
+perché il processore PutHDFS rappresenta un pozzo nel nostro semplice DataFlow.
+
+
