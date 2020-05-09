@@ -21,7 +21,8 @@ spark-submit [options] <app jar> [app options]
 Le option principali sono:
 --master: specifica lo URL del cluster a cui connettersi
 --deploy-mode: client (driver esegue sulla stessa macchina su cui è stato 
-               eseguito il comando) oppure cluster
+               eseguito il comando) oppure cluster (e.g. se si fa spark-submit
+               dall'esterno del cluster...)
 --class: Classe principale dell'applicazione Java
 --name: nome visualizzato sull'interfaccia web di Spark
 
@@ -53,7 +54,8 @@ Per effettuare il tuning può essere utile accedere innanzitutto alla UI di Spar
 Ogni SparkContext lancia una Web UI, per default sulla porta 4040.
 Questa interfaccia però risulta visibile solo per la durata dell'applicazione
 per default. Se la si vuole visualizzare anche dopo, allora bisogna settare
-spark.eventLog.enabled a true, creare la directory spark-events in tmp e avviare
+spark.eventLog.enabled a true (--conf spark.eventLog.enabled=true da spark-submit)
+, creare la directory spark-events in tmp e avviare
 start-history-server.sh. Verrà creata un'interfaccia Web alla porta 18080.
 
 Attenzione: 
