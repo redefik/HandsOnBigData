@@ -104,3 +104,16 @@ HARDWARE PROVISIONING
 Tendenzialmente, Spark scala linearmente: se si raddoppiano le risorse, si
 raddoppia la velocità d'esecuzione.
 
+----------
+|UBER JAR|
+----------
+
+Quando si fa il submit di un'applicazione Spark, bisogna fornire tutto il grafo
+delle dipendenze transitive. Quindi, non solo le librerie di terze parti, ma anche
+le loro dipendenze, le dipendenze di quest'ultime e così via. Per questo motivo,
+si è soliti produrre un unico grande file JAR contenente l'intero grafo
+di dipendenze, chiamato uber JAR. In Maven si utilizza a tale scopo il plugin
+maven-shade-plugin.
+
+
+
