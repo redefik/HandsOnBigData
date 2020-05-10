@@ -43,3 +43,6 @@ perché il processore PutHDFS rappresenta un pozzo nel nostro semplice DataFlow.
 NOTA: la property keep source file di GetFile è impostata a false. Ciò implica
 che quando vengono importati i file nell'HDFS, essi vengono rimossi dal file
 system locale.
+
+Per raggruppare processori: shitf sx + mouse per selezionare i processori e poi
+premere il pulsante Group nel quadrato di sinistra.
