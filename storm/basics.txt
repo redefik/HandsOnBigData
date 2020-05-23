@@ -1,0 +1,110 @@
+-----------------------------
+|COSTRUZIONE DELLA TOPOLOGIA|
+-----------------------------
+
+Definire un programma Storm significa definire una topologia.
+Per farlo si utilizza la classe TopologyBuilder.
+
+TopologyBuilder builder = new TopologyBuiler();
+
+Per inserire Spout e Bolt all'interno della topologia si usano i metodi:
+- setSpout()
+- setBolt()
+Entrambi ricevono in input:
+- una stringa identificativa del nodo;
+- un oggetto contenente la logica di processamento;
+- un intero che rappresenta il livello di parallelismo desiderato per il nodo
+  (numero di thread che lo eseguono all'interno del cluster). Se questo
+  parametro non viene specificato, allora per il nodo viene istanziato
+  esattamente un thread
+Il metodo setBolt() restituisce un oggetto InputDeclarer, che viene utilizzato
+per definire uno o più input del bolt.
+Esempio:
+builder.setBolt("exclaim1", new ExclamationBolt(), 3)
+        .shuffleGrouping("words");
+Sta ad indicare che il bolt "exclaim1" riceve in input tutte le tuple provenienti
+dal nodo "words". Lo shuffle grouping è solamente una delle tante politiche di
+raggruppamento possibili. Tipicamente il singolo InputDeclarer o i vari
+InputDeclarer vengono specificati attraverso il chaining come nell'esempio
+precedente)
+
+-------
+|SPOUT|
+-------
+
+Per creare uno spout bisogna estendere la classe BaseRichSpout oppure implementare
+l'interfaccia IRichSpout. La differenza tra le due è che BaseRichSpout già
+implementa dei metodi dell'interfaccia IRichSpout, che altrimenti bisogna
+implementare manualmene.
+
+I metodi di cui fare l'override se si usa BaseRichSpout sono:
+- open: questo metodo viene invocato ogni volta che un'istanza dello spout (task)
+  viene lanciata su un nodo worker del cluster Storm;
+- nextTuple() emette tuple all'output collector se ce ne sono disponibili,
+  altrimenti ritorna senza emettere nulla:
+  collector.emit(new Values(...));
+- declareOutputFields() dichiara quali sono i campi delle tuple emesse dallo
+  spout che si sta definendo
+  declarer.declare(new Fields(...));
+  
+------
+|BOLT|
+------
+
+Per creare un bolt si implementa l'interfaccia IRichBolt, che richiede la
+implementazione di alcuni metodi:
+-prepare() viene chiamato ogni volta che un'istanza del bolt (task) viene
+ lanciata su un nodo worker del cluster Storm;
+-execute() viene invocata quando il bolt riceve una tupla in input.
+-cleanup() viene invocata quando il bolt sta per essere arrestato
+-declareOutputFields() funziona come per gli spout
+-getComponentConfiguration() permette di configurare alcuni aspetti dell'esecuzion
+ del componente.
+Se si vuole evitare di implementare manualmente declareOutputFields() e 
+getComponentConfiguration() si può estendere la classe BaseRichBolt.
+
+L'emissione delle tuple può avvenire in uno qualsiasi dei tre metodi principali:
+prepare(), execute() e cleanup().
+Consideriamo il caso standard in cui emettiamo una tupla all'interno della
+execute():
+public void execute(Tuple tuple) {
+	// Questo statement produce in output una stringa ottenuta aggiungendo un punto
+	// esclamativo al campo stringa con indice 0 della tupla di input.
+	// Il primo argomento della emit serve a creare un collegamento tra la tupla
+	// di input e la tupla di output. In questo modo se il processamento della
+	// tupla di output dovesse fallire, la tupla di input sarebbe ripetuta.
+	// Questo passaggio è detto anchoring.
+	collector.emit(tuple, new Values(tuple.getString(0) + "!"));
+	// Questo statement invece riscontra il processamento della tupla di input
+	collector.ack(tuple);
+}
+N.B.: In alcune circostanze,si può anche invocare la emit() solo con il secondo
+argomento, mentre ack() o fail() devono essere sempre invocati, perché Storm, per
+poter replicare le tuple, deve trattenerle in memoria, quindi il rischio che si
+corre quando non si invocano ack() o fail() è la generazione di un out of memory
+error. L'invio degli ack è a carico di alcuni task speciali chiamati ACKER.
+Per default viene istanziata un acker per ogni task, ma questa impostazione
+può essere modificata.
+
+-----------------------------------
+|SUBMIT DELLA TOPOLOGIA AL CLUSTER|
+-----------------------------------
+
+StormSubmitter.submitTopology("myTopology", conf, topology);
+-mytopology è il nome della topologia, senza spazi sembrerebbe...
+-conf è un oggetto Conf() che si può usare per impostare alcuni parametri, come
+ ad esempio il numero di worker da istanziare
+-topology è la topologia creata invocando il metodo createTopology del
+ TopologyBuilder.
+ 
+Poi sulla storm-cli il comando da digitare è:
+storm jar <jar-with-dependencies> <classeprincipale> [arg1] [arg2]...
+
+A questo punto, dalla Storm UI si può vedere la topologia sottomessa ed
+eventualmente ucciderla. Il numero complessivo dei task dovrebbe includere anche
+il numero di task acker.
+ 
+
+
+
+

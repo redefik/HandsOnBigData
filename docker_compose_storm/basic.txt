@@ -1,0 +1,118 @@
+----------------
+|DOCKER COMPOSE|
+----------------
+
+Docker Compose è un tool di orchestrazione per applicazioni multi-container.
+In particolare, è usato per definire ed eseguire applicazioni multi-container
+all'interno di un singolo host. In combinazione con Docker Swarm o altri tool
+può essere usato anche per coordinare l'esecuzione dei container su molteplici
+nodi.
+
+Docker Compose deve essere installato a parte.
+
+Docker Compose si utilizza nel modo seguente:
+Si definiscono una serie di servizi in docker-compose.yml
+Si invoca docker-compose up -d per lanciare l'applicazione multi-container
+(in modalità detached)
+Si invoca docker-compose down per stoppare l'applicazione multi-container.
+
+ESEMPIO: applicazione multi-container contenete i seguenti servizi:
+- Zookeeper
+- Nimbus
+- Worker1, Worker2, Worker3
+- Storm Client
+- Redis
+- RabbitMQ
+
+version: '3'
+
+services:
+  # Demone master dell'architettura master-worker di Storm
+	storm-nimbus:
+	# Immagine dalla quale viene avviato il container
+	image: storm
+	# Analogo di --name in docker run
+	container_name: nimbus
+	# Comando da eseguire all'avvio del container (analogo a CMD nei dockerfile)
+	# In questo caso viene lanciato il demone Nimbus di Apache Storm
+	command: storm nimbus
+	# Stabilisce l'ordine con cui i servizi vengono avviati e stoppati.
+	# In questo caso, si avviano prima rabbitmq e zookeeper e poi il servizio
+	# corrente. Al contrario, quando si invoca docker-compose stop, si stoppa
+	# prima questo servizio e poi rabbitmq e zookeeper
+	depends_on:
+		- rabbitmq
+		- zookeeper
+	# Stabilisce che il container viene sempre riavviato, sia in caso di fallimento
+	# sia in caso di successo
+	restart: always
+	# Porte esposte necessarie per Nimbus
+	ports:
+		- "6627:6627"
+		- "8000:8000"
+	
+	# Questo è il servizio che si utilizza per sottomettere topologie Storm
+	storm-cli:
+		# Il container viene avviato a partire da un'immagine storm leggermente
+		# modificata. Sostanzialmente, è un'immagine contenente il file di
+		# configurazione storm.yaml, che è quello in cui vengono configurati
+		# i demoni Storm.
+		# Questo file contiene le seguenti configurazioni:
+		# - storm.zookeeper.servers: la lista degli host del cluster Zookeeper
+		#                            che viene usato per il coordinamento
+		#                            (in questo caso [zookeeper])
+		# - nimbus.seeds: candidato master dell'architettura
+		#                 (in questo caso [nimbus])
+		# - storm.log.dir: "/logs"
+		# - storm.local.dir: "/storm-data"
+		# Per interagire con la storm-cli docker attach storm-cli
+		image: effeerre/storm-cli
+		container_name: storm-cli
+		depends_on:
+			- zookeeper
+			- rabbitmq
+			- storm-nimbus
+			- redis
+		entrypoint: /bin/bash # !!!provare a commentare
+		# Equivalenti di -it in docker run
+		stdin_open: true
+		tty: true
+		# In questa cartella vengono caricati gli script che effettuano il submit
+		# delle applicazioni Spark e i jar di queste applicazioni.
+		volumes:
+			- ./data:/data
+	
+	zookeeper:
+		image: zookeeper
+		container_name: zookeeper
+		restart: always
+		ports:
+			- "2181:2181"
+	
+	# Interfaccia utenti di Storm		
+	storm-ui:
+		image: storm
+		container_name: storm-ui
+		command: storm ui
+		depends_on:
+			- storm-nimbus
+			- zookeeper
+		restart: always
+		ports:
+			- "8080:8080"
+	
+	# Servizio in cui viene eseguito il worker1
+	worker1:
+		image: storm
+		# Supervisor è il demone storm che esegue sui vari worker
+		command: storm supervisor
+		container_name: worker1
+		depends_on:
+			- rabbitmq
+			- storm-nimbus
+			- zookeeper
+			- redis
+		restart: always
+			
+	...
+
