@@ -1,0 +1,51 @@
+------------------------------------------------------
+|REALIZZAZIONE DI UN BOLT PRODUCER PER UN TOPIC KAFKA|
+------------------------------------------------------
+
+- Innanzitutto, quando si avvia il server kafka bisogna aggiungere l'opzione:
+  --override advertised-listeners=PLAINTEXT://<iplocalhost>:9092
+  L'ip del localhost lo si puà ricavare ad esempio usando il comando ip -a
+  in Linux. In sostanza questo serve a rendere accessibili i broker dall'esterno.
+  
+- All'interno del programma Storm si utilizza la libreria storm-kafka-clients.
+  Vedere https://github.com/apache/storm/tree/master/examples/storm-kafka-client-examples/src/main/java/org/apache/storm/kafka per il pom.xml da usare
+  
+- Bisogna creare un oggetto KafkaBolt<K,V> e agganciarlo alla topologia
+  (K = tipo della chiave, V = tipo del messaggio)
+  Questo richiede di implementare due interfacce:
+  - TupleToKafkaMapper
+    Questa interfaccia espone due metodi:
+    K getKeyFromTuple(Tuple tuple);
+    V getMessageFromTuple(Tuple tuple);
+    L'obiettivo della classe che implementa TupleToKafkaMapper è quello di
+    convertire una tupla Storm in una coppia (chiave,valore) Kafka.
+    Se si vuole specificare come chiave il campo "k" della tupla e come valore
+    il campo "v" (k,v evidentemente saranno dichiarati dall'operatore precedente
+    al KafkaBolt), allora si può usare un'implementazione built-in:
+  	new FieldNameBasedTupleToKafkaMapper<String,String>("k", "v");
+  	In questo caso i campi sono stringhe.
+  	Per settare il mapper, si invoca sull'oggetto KafkaBolt il metodo
+  	withTupleToKafkaMapper();
+  - KafkaTopicSelector
+    Questa interfaccia possiede solamente il metodo:
+    String getTopics(Tuple tuple);
+    Se si usa sempre lo stesso topic, allora si può usare la classe
+    DefaultTopicSelector, passando al costruttore di questa classe il nome
+    del topic.
+    Per settare il topic selector, si invoca sull'oggetto KafkaBolt il metodo
+    withTopicSelector();
+  - Dopo aver istanziato l'oggetto KafkaBolt, oltre a settare topic selector
+    e properties, bisogna impostare alcune proprietà con il metodo
+    withProducerProperties, che riceve in input un oggetto Properties.
+    Le property obbligatorie sono:
+    ProduerConfig.BOOTSTRAP_SERVERS_CONFIG = indirizzo del server kafka
+    ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG = serializzatore della chiave
+    ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG = serializzatore del valore
+    ProducerConfig.CLIENT_ID_CONFIG=identificativo che Storm passa a Kafka
+    quando effettua le richieste
+    
+    
+    
+	
+  
+
