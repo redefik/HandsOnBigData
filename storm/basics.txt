@@ -92,7 +92,7 @@ può essere modificata.
 
 StormSubmitter.submitTopology("myTopology", conf, topology);
 -mytopology è il nome della topologia, senza spazi sembrerebbe...
--conf è un oggetto Conf() che si può usare per impostare alcuni parametri, come
+-conf è un oggetto Config che si può usare per impostare alcuni parametri, come
  ad esempio il numero di worker da istanziare
 -topology è la topologia creata invocando il metodo createTopology del
  TopologyBuilder.
@@ -103,6 +103,14 @@ storm jar <jar-with-dependencies> <classeprincipale> [arg1] [arg2]...
 A questo punto, dalla Storm UI si può vedere la topologia sottomessa ed
 eventualmente ucciderla. Il numero complessivo dei task dovrebbe includere anche
 il numero di task acker.
+
+---------
+|LOGGING|
+---------
+
+I file di logging sono in /logs/worker-artiifacts
+Per accedere alla shell dei worker
+docker container exec -it worker1 /bin/bash
  
 
 

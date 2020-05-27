@@ -3,7 +3,7 @@
 ------------------------------------------------------
 
 - Innanzitutto, quando si avvia il server kafka bisogna aggiungere l'opzione:
-  --override advertised-listeners=PLAINTEXT://<iplocalhost>:9092
+  --override advertised.listeners=PLAINTEXT://<iplocalhost>:9092
   L'ip del localhost lo si puà ricavare ad esempio usando il comando ip -a
   in Linux. In sostanza questo serve a rendere accessibili i broker dall'esterno.
   

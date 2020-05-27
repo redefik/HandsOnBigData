@@ -1,0 +1,27 @@
+---------------------------------
+|SUPPORTO ALLE FINESTRE IN STORM|
+---------------------------------
+
+La versione attuale di Apache Storm supporta le finestre. Nello specifico, sono
+supportate due tipologie di finestre: sliding window e tumbling window.
+
+I bolt basati su finestra devono implementare l'interfaccia IWindowedBolt.
+Il metodo principale di questa interfaccia è il metodo execute(), che viene
+invocato ogni volta che la finestra si attiva e da accesso alle tuple raggruppate
+all'interno della finestra mediante l'oggetto TupleWindow.
+
+Nella pratica, tipicamente il programmatore non implementa direttamente
+IWindowedBolt, ma estende la classe BaseWindowedBolt.
+
+NOTA: Le tuple di una finestra vengono riscontrate automaticamente da Storm
+quando la finestra si chiude. Quindi la funzionalità di windowing offre
+garanzie di consegna at-least-once.
+
+Per specificare il tipo di finestra si utilizzano i metodi:
+- withWindow
+- withTumblingWindow
+
+Esempio new MyTumblingWindowedBolt().withTumblingWindow(BaseWindowedBolt.Count.of(5))
+imposta una tumbling window count-based che opera su 5 tuple per volta.
+
+
