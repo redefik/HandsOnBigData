@@ -21,7 +21,48 @@ Per specificare il tipo di finestra si utilizzano i metodi:
 - withWindow
 - withTumblingWindow
 
-Esempio new MyTumblingWindowedBolt().withTumblingWindow(BaseWindowedBolt.Count.of(5))
+Esempio new MyTumblingWindowedBolt().withTumblingWindow(new Duration(5, TimeUnit.SECONDS))
 imposta una tumbling window count-based che opera su 5 tuple per volta.
+
+
+------------------------------
+|PROCESSING TIME E EVENT TIME|
+------------------------------
+
+In Storm, gli operatori con finestra si basano per default sul tempo di
+processamento.
+
+E' tuttavia possibile definire una finestra in cui il processamento viene fatto
+in base ad un certo timestamp associato ad ogni tupla.
+In particolare, il processamento event-time può essere ottenuto in due modi:
+- mediante il metodo withTimestampField("field") in cui si specifica quale
+  campo nella tupla svolge il ruolo di timestamp (Il campo in questione deve
+  essere un Long)
+- mediante il metodo withTimestampExtractor() a cui bisogna passare in input
+  un'istanza di una classe che implementa l'interfaccia TimestampExtractor.
+  Nell'unico metodo di questa classe bisogna semplicemente tirare fuori da un
+  oggetto Tuple un long che funga da timestamp.
+
+Si può anche specificare una allowedLateness con il metodo withLag che prende
+in input un oggetto Duration.
+
+Internamente, per processare le tuple in base al timestamp, Storm emette
+periodicamente dei WATERMARK (in modo simile a ciò che viene fatti in altri
+framework come Apache Flink). Per default, i watermark vengono emessi ogni
+secondo. E' tuttavia possibile modificare questa impostazione attraverso il
+metodo withWatermarkInterval.
+
+Come funziona in pratica il meccanismo dei watermark.
+Poniamo che i watermark vengano emessi ogni secondo e che l'allowed lateness
+sia di 2 secondi.
+Durante il primo secondo arrivano le tuple seguenti:
+4:02
+4:35
+4:28
+Trascorso il secondo viene emesso watermark(4:33) perché abbiamo supposto che
+se una tupla arriva fuori ordine lo fa entro 2 secondi. A questo punto, le finestre
+che devono scattare scattano e si procede con il processamento delle tuple al
+loro interno.
+
 
 
