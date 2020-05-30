@@ -53,3 +53,20 @@ Per usare un database Redis:
    ...
 - Per testare l'applicazione, killare la topologia e riavviarla. Il conteggio
   delle parole dovrebbe riprendere da dove era stato interrotto.
+
+NOTA: Quando lo stato è di grandi dimensioni, usare un sistema di storage come
+      Redis è doppiamente vantaggioso.
+      
+------------------      
+|STATO E FINESTRE|
+------------------
+
+Per rendere persistente lo stato utilizzato da una finestra:
+- Invocare withPersistence() dopo withWindow().
+- [Opzionalmente, invocare withMaxEventsInMemory() per specificare il massimo
+   numero di tuple da cachare in memoria]
+- Nella definizione del bolt estendere la classe BaseStatefulWindowedBolt, il che
+  richiede di implementare il metodo initState()
+- Dentro il metodo execute() bisogna utilizzare un iteratore piuttosto che
+  caricare tutte le tuple in memoria, altrimenti verrebbe meno il vantaggio di
+  usare il data store in-memory esterno.
