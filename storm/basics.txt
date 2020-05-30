@@ -85,6 +85,9 @@ corre quando non si invocano ack() o fail() è la generazione di un out of memor
 error. L'invio degli ack è a carico di alcuni task speciali chiamati ACKER.
 Per default viene istanziata un acker per ogni task, ma questa impostazione
 può essere modificata.
+N.B.: Quando si emette una tupla da uno spout bisogna anche emettere come secondo
+      argomento il suo message identifier, altrimenti il meccanismo di acking
+      non funziona!
 
 -----------------------------------
 |SUBMIT DELLA TOPOLOGIA AL CLUSTER|
@@ -111,7 +114,32 @@ il numero di task acker.
 I file di logging sono in /logs/worker-artiifacts
 Per accedere alla shell dei worker
 docker container exec -it worker1 /bin/bash
- 
+
+--------
+|TUNING|
+--------
+
+La Storm UI è lo strumento principale per fare tuning dei parametri di una
+applicazione di Data Stream Processing.
+Per ogni bolt sono riportate varie informazioni tra cui:
+- CAPACITY: percentuale del periodo di tempo di riferimento che il bolt ha
+            speso per eseguire le tuple.
+            Se la capacity->1, allora bisogna probabilmente modificare il livello
+            di parallelismo (task ed executor e poi worker se necessario).
+- EXECUTE LATENCY: tempo che una tupla passa nel metodo execute (in pratica
+                   da quando arriva a quando si invoca emit())
+- PROCESS LATENCY: tempo che intercorre tra l'arrivo della tupla e il suo ack
+Esempio: in un bolt con finestra PROCESS LATENCY può essere molto maggiore di
+EXECUTE LATENCY.
+
+NOTA: Quando si aumenta il livello di parallelismo dei bolt, il MAX PENDING
+      SPOUT (massimo numero di tuple non riscontrate) può diventare un collo
+      di bottiglia. In particolare, questo dovrebbe essere maggiore del massimo
+      numero di tuple processabili in un dato istante (somma del numero di task)
+Anche per ogni spout sono riportate varie informazioni. Tra queste:
+- Il numero di tuple ACKED
+- La COMPLETE LATENCY: tempo impiegato da una tupla per essere processata
+  completamente
 
 
 
