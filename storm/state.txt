@@ -1,0 +1,55 @@
+-------------------------------
+|GESTIONE DELLO STATO IN STORM|
+-------------------------------
+
+Poniamo di voler realizzare il word count in salsa DSP.
+Esempio di funzionamento dell'applicazione:
+"flink" --> ("flink", 1)
+"storm" --> ("storm", 1)
+"flink" --> ("flink", 2)
+...
+Un operatore genera le parole.
+Un secondo operatore effettua il conteggio.
+Se ad un certo punto la topologia viene killata e riavviata, i contatori
+ripartono da 0.
+Possiamo però dotare l'operatore di uno stato persistente. Per farlo, occorre
+estendere la classe BaseStatefulBolt<KeyValueState<String,Long>>. Questo richiede
+di implementare oltre ai soliti metodi anche il metodo initState(), che riceve
+in input il vecchio stato dell'applicazione.
+Esempio:
+...
+private KeyValueState<String, Long> wordCount;
+public void initState(KeyValueState<String, Long> oldState) {
+        this.wordCount = oldState;
+}
+...
+Attualmente è supportato solamente il KeyValueState, cioè stato in forma di
+coppie chiave-valore.
+
+Quando si definisce un bolt in questo modo, Storm automaticamente provvede
+ad effettuare periodicamente il chekpoint dello stato su un layer di storage
+esterno, che per esempio può essere un database Redis.
+
+Per usare un database Redis:
+- Aggiungere al pom.xml:
+  <dependency>
+            <groupId>org.apache.storm</groupId>
+            <artifactId>storm-redis</artifactId>
+            <version>2.1.0</version>
+            <type>jar</type>
+  </dependency>
+- Configurare la connessione con Redis:
+  ...
+  config.put(Config.TOPOLOGY_STATE_PROVIDER, "org.apache.storm.redis.state.RedisKeyValueStateProvider");
+  String redisConfig = " {\n" +
+                "   \"jedisPoolConfig\": {\n" +
+                "     \"host\": \"redis\",\n" +
+                "     \"port\": 6379,\n" +
+                "     \"timeout\": 2000,\n" +
+                "     \"database\": 0\n" +
+                "   }\n" +
+                " }";
+   config.put(Config.TOPOLOGY_STATE_PROVIDER_CONFIG, redisConfig);
+   ...
+- Per testare l'applicazione, killare la topologia e riavviarla. Il conteggio
+  delle parole dovrebbe riprendere da dove era stato interrotto.
