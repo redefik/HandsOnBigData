@@ -44,6 +44,32 @@
     ProducerConfig.CLIENT_ID_CONFIG=identificativo che Storm passa a Kafka
     quando effettua le richieste
     
+-------------
+|KAFKA SPOUT|
+-------------
+
+I passi minimi da compiere per definire un Kafka Spout sono:
+- Istanziare un oggetto KafkaSpoutConfig<K,V>, dove K è il tipo della chiave e
+  V il tipo del valore:
+  KafkaSpoutConfig<K,V> ksc = KafkaSpoutConfig.builder(serverkafka, topic)
+                                              .build();
+- Istanziare l'oggetto KafkaSpout:
+  KafkaSpout<K,V> ks = new KafkaSpout<K,V>(ksc);
+
+Per default, lo spout emette uno stream in cui ciascuna tupla contiene i campi(stringa)
+"topic", "partition", "offset", "key", e "value".
+
+Per default, le tuple emesse dallo spout non vengono tracciate.
+Le tuple vengono tracciate solamente quando la garanzia di processamento è
+AT_LEAST_ONCE (l'offset viene commitato quando la tupla viene processata
+completamente, quindi se il consumer fallisce può capitare che si ritrovi a
+processare due volte una tupla) oppure quando la garanzia di processamento è
+AT_MOST_ONCE (offset commitato immediatamente) ma il tracciamento viene forzato.
+Per settare la garanzia di processamento si usa il metodo: setProcessingGuarantee().
+
+
+
+    
     
     
 	
