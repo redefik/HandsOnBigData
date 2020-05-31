@@ -1,0 +1,36 @@
+--------------
+|DOCKER SWARM|
+--------------
+
+Docker Swarm è un tool di orchestrazione per l'esecuzione di applicazioni
+multi-container e multi-host.
+
+SETUP DI UN CLUSTER DI ISTANZE EC2 CON DOCKER SWARM
+- Avviare le tre istanze e installare Docker su ciascuna di esse
+- Abilitare il traffico inbound verso l'istanza che sarà utilizzata come MANAGER.
+- Connettersi via ssh al manager
+- docker swarm init --advertise-addr <IP PRIVATO del manager>
+- Connettersi via ssh a ciascun worker
+- Eseguire il comando precedentemente generato da docker swarm init
+- Connettersi via ssh al manager
+- Verificare il setup con docker node ls
+
+TEAR-DOWN
+Eseguire sui worker: docker swarm leave
+Eseguire sul manager: docker swarm leave --force
+
+STACK DEPLOY (sul manager)
+-docker stack deploy --compose-file <.yml file> <nomestack>
+Vengono lanciati dei servizi che come nome hanno il nome dello stack seguito
+dal nome del servizio così come specificato nel file YAML.
+NOTA: Per riferire i vari servizi si usano i nomi dei servizi (compreso il nome
+dello stack) e non i nomi dei container (che infatti in teoria possono essere
+poi replicati).
+Per vedere i servizi lanciati:
+-docker service ls
+Per ispezionare il servizio x
+-docker service ps x
+Verrà mostrato tra le altre cose il nodo su cui è in esecuzione il servizio
+
+Per rimuovere lo stack
+docker stack rm <nomestack>
