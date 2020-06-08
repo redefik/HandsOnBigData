@@ -1,0 +1,27 @@
+---------------
+|PRODUCER JAVA|
+---------------
+
+Dependency nel pom.xml
+
+<dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>2.5.0</version>
+</dependency>
+
+- Istanziare KafkaProducer<K,V> dove K è il tipo della chiave e V il tipo del
+  messaggio.
+  Il costruttore di KafkaProducer riceve in input un oggetto Properties, dove si
+  specificano:
+  bootstrap.servers
+  key.serializer
+  value.serializer
+  ...
+  
+- Per inviare un messaggio si invoca il metodo send(), che riceve in input:
+  - nome del topic di destinazione
+  - chiave
+  - messaggio associato alla chiave
+  
+- Infine si invoa il metodo close()
