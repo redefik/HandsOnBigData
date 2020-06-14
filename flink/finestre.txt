@@ -1,0 +1,118 @@
+---------------------
+|FINESTRE TIME-BASED|
+---------------------
+
+Per specificare una finestra time-based si usa:
+- timeWindow() se la finestra viene applicata ad uno stream con chiave
+- timeWindowAll() se invece la finestra viene applicata ad uno stream senza chiave
+
+Nel caso di sliding window, il metodo riceve due parametri (ampiezza della finestra
+e intervallo di scorrimento).
+esempio:
+countyDelays
+ .keyBy(CountyDelay::getCounty)
+ .timeWindow(Time.hours(24), Time.hours(1))
+
+La nozione di tempo utilizzata dalla finestra dipende dalla TimeCharacteristics
+dello StreamExecutionEnvironment.
+
+Dopo aver specificato il tipo di finestra, si specifica la funzione da applicare
+agli elementi dello stream che ricadono all'interno della finestra.
+
+Le due funzioni principali sono aggregate() e process()
+
+-------------
+|aggregate()|
+-------------
+Il metodo prende in input un oggetto che implementa
+AggregateFunction<IN, ACC,OUT> dove:
+IN è il tipo degli elementi di input
+ACC è il tipo dell'accumulatore.
+OUT è il tipo di output
+
+Ad esempio, se si vuole calcolare la media degli elementi nella finestra:
+private static class AverageAggregate implements AggregateFunction<CountyDelay, Tuple2<Double, Long>, Double> {
+		@Override
+		// inizializzazione dell'accumulatore, corrispondente in questo caso
+		// alla coppia (somma_parziale, conteggio)
+		public Tuple2<Double, Long> createAccumulator() {
+			return new Tuple2<>(0.0, 0L);
+		}
+
+		// metodo che specifica come si aggiorna l'accumulatore quando arriva
+		// un nuovo elemento
+		// in questo caso si aggiorna la somma parziale e si incrementa il contatore
+		@Override
+		public Tuple2<Double, Long> add(CountyDelay countyDelay, Tuple2<Double, Long> accumulator) {
+			return new Tuple2<>(accumulator.f0 + countyDelay.getDelay(), accumulator.f1 + 1L);
+		}
+
+    // metodo che restituisce il risultato finale
+		@Override
+		public Double getResult(Tuple2<Double, Long> accumulator) {
+			return accumulator.f0 / accumulator.f1;
+		}
+
+    // metodo che definisce come fare il merge di due accumulatori
+		@Override
+		public Tuple2<Double, Long> merge(Tuple2<Double, Long> accumulator1, Tuple2<Double, Long> accumulator2) {
+			return new Tuple2<>(accumulator1.f0 + accumulator2.f0, accumulator1.f1 + accumulator2.f1);
+		}
+	}
+	
+N.B.: La media viene calcolata in modo incrementale. Questo approccio è più efficiente
+      di quello classico in cui la media viene calcolata in un colpo solo alla chiusura
+      della finestra.
+
+-----------
+|process()|
+-----------
+
+process() prende in input un oggetto che estende
+ProcessWindowFunction<IN,OUT,KEY,TimeWindow> dove:
+- IN è il tipo di input
+- OUT è il tipo di output
+- KEY è il tipo della chiave
+L'estensione di questa classe richiede di fare override di:
+public void process(KEY key, Context context, Iterable<IN> ins, Collector<OUT> out) throws Exception {
+			
+}
+Dall'oggetto Context si possono ricavare alcune informazioni utili sulla finestra
+(e.g. il tempo d'inizio della finestra).
+
+N.B. Se lo stream non è keyed si usa ProcessAllWindowFunction.
+
+-----------------------
+|aggregate()+process()|
+-----------------------
+
+Quando si invoca aggreage si può affiancare all'oggetto kind of AggregateFunction
+un oggetto ProcessWindowFunction. In questo modo, si combina l'efficienza della
+aggregazione con la maggiore flessibilità di ProcessWindowFunction. Per esempio,
+nel codice della media si può usare un ProcessWindowFunction che presi i valori
+double della media affianca loro la chiave corrispondente emettendo poi la coppia
+in output.
+
+----------------------
+|FINESTRE CONSECUTIVE|
+----------------------
+
+Il meccanismo dei watermark di Flink permette di mettere in fila due operazioni
+basate su finestra.
+Esempio:
+
+
+DataStream<Integer> input = ...;
+
+DataStream<Integer> resultsPerKey = input
+    .keyBy(<key selector>)
+    .window(TumblingEventTimeWindows.of(Time.seconds(5)))
+    .reduce(new Summer());
+
+DataStream<Integer> globalResults = resultsPerKey
+    .windowAll(TumblingEventTimeWindows.of(Time.seconds(5)))
+    .process(new TopKWindowFunction());
+
+Qui ad esempio la seconda finestra scatta quando scatta la prima. Perciò, è
+possibile fare prima una somma su base chiave dei valori che cadono in una finestra
+e poi ordinare le somme relativamente alla stessa finestra.

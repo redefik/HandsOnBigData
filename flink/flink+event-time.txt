@@ -1,0 +1,72 @@
+---------------------
+|TIME CHARACTERISTIC|
+---------------------
+
+Per operare su base event-time è necessario settare la TimeCharacteristic Event
+Time:
+env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
+
+-----------
+|TIMESTAMP|
+-----------
+
+Dopodiché, bisogna assegnare ad ogni evento un timestamp. In genere, il timestamp
+è contenuto in un campo dell'evento.
+
+Per assegnare i timestamp (e quindi generare i watermark) ci sono due possibilità:
+1. O si effettua l'assegnamento direttamente nella sorgente del data stream
+2. Oppure si utilizza un timestamp assigner
+
+--------------------
+|TIMESTAMP ASSIGNER|
+--------------------
+
+Un timestamp assigner prende in input uno stream semplice e ne genera uno nuovo
+in cui gli elementi hanno un timestamp e vi sono anche degli elementi speciali
+chiamati watermark. In genere, il timestamp assigner viene specificato dopo il
+parsing dello stream.
+Se si utilizza Kafka come sorgente dei dati, Flink consente di definire il
+timestamp assigner dentro Kafka stesso.
+
+Il metodo da invocare per l'assegnazione è assignTimestampsAndWatermarks().
+
+--------------------------------
+|TIMESTAMP ASSIGNER PREDEFINITI|
+--------------------------------
+- AscendingTimestampExtractor: è quello che si usa quando si sa che i timestamp
+  provengono dalla sorgente in ordine ascendente. In questo caso, ogni timestamp
+  può agire da watermark, perché si sa che dopo di esso non arriverranno eventi
+  precedenti.
+  IN PARTICOLARE, è sufficiente che i timestamp siano ordinati in modo ascendente
+  per ogni task data source. Ad esempio, se una partizione Kafka è letta da un
+  singolo task, allora è necessario semplicemente che i timestamp siano ordinati
+  all'interno di ogni partizione Kafka. Flink provvederà poi a fare il merging
+  corretto dei timestamp in caso di shuffle e così via...
+
+- BoundedOutOfOrdernessTimestampExtractor: è quello che si usa quando si prevede
+  un ritardo massimo con cui possono arrivare tuple fuori-ordine.
+  
+-----------------------------------
+|TIMESTAMP ASSIGNER PERSONALIZZATI|
+-----------------------------------
+Ci sono due possibilità:
+- O si implementa l'interfaccia AssignerWithPeriodicWatermarks, per generare
+  periodicamente i watermark.
+- O si implementa l'interfaccia AssignerWithPunctuatedWatermarks, quando nell'elemento
+  già c'è un'indicazione se questo deve corrispondere ad un watermark.
+  
+-------------------
+|TIMESTAMP E KAFKA|
+-------------------
+
+Quando si usa Apache Kafka la singola partizione Kafka potrebbe essere ordinata.
+Ma spesso le partizioni Kafka vengono consumate in parallelo, per cui l'ordinamento
+delle singole partizioni può venir meno.
+In questo caso, si può utilizzare la KAFKA-PARTITION-AWARE WATERMARK GENERATION.
+I watermark vengono generati dentro il consumer Kafka, per ogni partizione Kafka,
+e i watermark associati alle varie partizioni vengono poi fusi così come vengono
+fusi in caso per esempio di shuffle.
+Ad esempio, se si sa che i timestamp sono ordinati si può usare un
+AscendingTimestampExtractor.
+
+

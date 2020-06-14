@@ -1,0 +1,88 @@
+---------------------
+|INSTALLAZIONE FLINK|
+---------------------
+-Scaricare dal sito i binaries (una qualsiasi versione Scala)
+-tar xzf ...
+-Spostare nella cartella desiderata
+-Per avviare un cluster locale bin/start-cluster.sh
+-Su localhost:8081 viene esposta l'interfaccia web di Flink
+-bin/stop-cluster.sh per stoppare il cluster
+-Per fare il submit di un programma Flink:
+ bin/flink run <jar> --port 9999 (se per esempio il programma deve connettersi
+ ad una sorgente socket)
+
+
+---------------------------------
+|SETUP DELL'AMBIENTE DI SVILUPPO|
+---------------------------------
+-Generare il progetto sull'IDE tramite l'archetipo Maven
+ groupId=org.apache.flink
+ artifactId=flink-quickstart-java
+ archetypeVersion=1.10.0
+-(Si consiglia di modificare la dimensione dell'heap della JVM:-Xmx800m)
+-Per fare il build mvn clean package
+-Se però si cambia il nome della main class bisogna inserirlo dentro il pom.xml.
+ Flink in questo modo viene eseguito a partire dal jar senza che sia necessario
+ fornire la classe main
+
+
+-----------------------
+|EXECUTION ENVIRONMENT|
+-----------------------
+
+Ogni applicazione Flink richiede un execution environment.
+In particolare, le applicazioni DSP richiedono uno StreamExecutionEnvironment.
+Lo StreamExecutionEnvironment è l'oggetto a cui viene associato il job graph
+che poi all'invocazione di execute() diventa un ExecutionGraph.
+
+-----------------------
+|SORGENTI DELLO STREAM|
+-----------------------
+
+Bisogna poi specificare una sorgente dello stream.
+In fase di testing le sorgenti più usate sono:
+- fromElements
+  DataStream<Person> flinstones = env.fromElements(new Person(), new Person()...);
+- fromCollection
+  DataStream<Person> flinstones = env.fromCollection(flinstonesCollection);
+- socketTextStream:
+  DataStream<String> lines = env.socketTextStream("localhost", 9999)
+  Per avviare il server localmente si può usare ad esempio nc:
+  nc -l 9999
+- readTextFile(); NOTA: il path del file di input deve essere assoluto
+NOTA: Si può mettere all'interno di un flusso tutto ciò cheè serializzabile.
+      Per esempio la classe Person deve essere POJO (pubblica, costruttore di
+      default, getter e setter o attributi pubblici)
+      
+-------------------------
+|COLLETTORI DELLO STREAM|
+-------------------------
+
+Il collettore più semplice è print() che stampa all'interno dei file di log
+della directory radice di Flin. In produzione, si usano altri collettori come
+StreamingFileSink, database, sistemi publish-subscribe...
+
+----------------
+|TRASFORMAZIONI|
+----------------
+map(): come in Spark
+flatMap(): semantica come in Spark, ma in questo caso l'uso delle Lambda
+           Expression non è indicato.
+Esempio: splitting di una riga di testo nelle parole che la compongono
+dataStream.flatMap(new FlatMapFunction<String, String>() {
+    @Override
+    public void flatMap(String value, Collector<String> out)
+        throws Exception {
+        for(String word: value.split(" ")){
+            out.collect(word);
+        }
+    }
+});
+Notache flatMap permette di emettere a partire da un elemento 0,1 o più elementi.
+Quindi si può usare ad esempio se si prevede di scartare alcuni elementi dello
+stream.
+
+
+
+
+  

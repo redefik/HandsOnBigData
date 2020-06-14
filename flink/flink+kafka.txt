@@ -1,0 +1,55 @@
+----------------
+|DIPENDENZA POM|
+----------------
+
+<dependency>
+  <groupId>org.apache.flink</groupId>
+  <artifactId>flink-connector-kafka_2.11</artifactId>
+  <version>1.10.0</version>
+</dependency>
+
+
+----------------
+|KAFKA CONSUMER|
+----------------
+
+Per aggiungere una sorgente Kafka al grafo si utilizza addSource() specificando
+come parametro di input un oggetto FlinkKafkaConsumer<T>, dove T è il tipo
+di output.
+Il costruttore di FlinkKafkaConsumer riceve in input:
+- topic da cui sono prelevati i messaggi
+- oggetto che specifica in che modo deserializzare i messaggi (un SimpleStringSchema
+  spesso basta)
+- un oggetto Properties in cui è necessario specificare:
+  - bootstrap.servers
+  - group.id
+
+DataStream<String> inputStream = env.addSource(flinkKafkaConsumer);
+
+----------------
+|KAFKA PRODUCER|
+----------------
+
+Per aggiungere un collettore Kafka al grafo si utilizza addSink() specificando
+come parametro di input un oggetto FlinkKafkaProducer<T>, dove T è il tipo di
+input.
+Il costruttore di FlinkKafkaConsumer riceve in input:
+- topic da cui sono prelevati i messaggi
+- un oggetto che implementa l'interfaccia KafkaSerializationSchema<T>
+  esempio:
+  public class KafkaSerializer implements KafkaSerializationSchema<String> {
+
+    private String topic;
+
+    public KafkaSerializer(String topic) {
+        super();
+        this.topic = topic;
+    }
+
+    @Override
+    public ProducerRecord<byte[], byte[]> serialize(String s, @Nullable Long aLong) {
+        return new ProducerRecord<>(topic, s.getBytes(StandardCharsets.UTF_8));
+    }
+}
+- un oggetto Properties contenente bootstrap.servers
+- una semantica di consegna (NONE, AT_LEAST_ONCE o EXACTLY_ONCE)
