@@ -1,0 +1,122 @@
+----------
+|METRICHE|
+----------
+
+Flink espone un sistema di misurazione che permette di raccogliere metriche
+ed inviarle a sistemi esterni.
+
+Per accedere al METRIC SYSTEM si utilizza il metodo:
+getRuntimeContext().getMetricGroup(), che restituisce un oggetto MetricGroup che
+consente di creare e registrare delle nuove metriche. Per poter accedere al METRIC
+SYSTEM bisogna trovarsi comunque in una classe che estende RichFunction (e.g.
+al posto di FlatMapFunction<T> RichFlatMapFunction<T>).
+Tipicamente si fa override del metodo open():
+
+....
+
+private transient Counter counter;
+
+@Override
+public void open(Configuration config) {
+   this.counter = getRuntimeContext()
+      .getMetricGroup()
+      .counter("myCounter");
+}
+
+...
+NOTA: transient fa sì che l'attributo venga ignorato nella serializzazione.
+
+
+------------------
+|TIPI DI METRICHE|
+------------------
+
+-Counter è per contare qualcosa: ad esempio il numero di tuple scartate.
+-Gauge fornisce in output un valore di qualsiasi tipo: ad esempio una latenza
+ misurata come differenza tra uno start timestamp ed un end timestamp.
+-Histogram misura la distribuzione di valori long
+-Meter misura un throughput medio:
+ 
+
+public class MyMapper extends RichMapFunction<Long, Long> {
+  private transient Meter meter;
+
+  @Override
+  public void open(Configuration config) {
+  
+  	com.codahale.mtrics.Meter dropwizardMeter = new com.codahale.metrics.Meter();
+  
+    this.meter = getRuntimeContext()
+      .getMetricGroup()
+      .meter("myMeter", new DropwizardMeterWrapper(dropwizardMeter));
+  }
+
+  @Override
+  public Long map(Long value) throws Exception {
+    this.meter.markEvent(); // in questo modo viene registrata l'occorrenza di un evento
+    return value;
+  }
+}
+
+Il throughput dovrebbe essere espresso in eventi/secondo.
+
+DropwizardMeterWrapper() è un Wrapper fornito da Flink della classe Meter della
+libreria Metrics, di cui bisogna aggiungere la dipendenza nel pom.xml:
+
+<dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-metrics-dropwizard</artifactId>
+      <version>1.10.0</version>
+</dependency>
+
+----------------------------
+|TRACCIAMENTO DELLA LATENZA|
+----------------------------
+
+Per tracciare la latenza dei record che attraversano il sistema, bisogna
+settare un latencyTrackingInterval:
+
+ExecutionConfig executionConfig = env.getConfig();
+executionConfig.setLatencyTrackingInterval(long s);
+
+Ogni s millisecondi, le sorgenti emetteranno un record speciale, chiamato
+LatencyMarker. Questo record non può scavalcare i record utente. Quindi se quest'ultimi
+si accodano all'ingresso di un operatore, questo fa aumentare la latenza tracciata
+dal marker. Il marker invece non tiene conto del tempo speso dai record negli
+operatori. Quindi, è utile più che altro per individuare le fonti di latenza.
+La granularità del tracciamento viene impostata agendo sul parametro
+metrics.latency.granularity del file conf/flink-conf.yaml
+In particolare, le granularità possibili sono:
+single
+operator
+subtask
+Più si scende e più l'impatto del tracciamento è grande.
+Comunque, in generale, il tracciamento andrebbe usato solo in sede di debugging.
+IN PRATICA, viene misurato il tempo che un record speciale impiega per raggiungere
+partendo da una certa sorgente ogni operatore a valle.
+
+----------
+|GRAPHITE|
+----------
+
+docker run -d \
+ --name graphite \
+ --restart=always \
+ -p 80:80 \
+ -p 2003-2004:2003-2004 \
+ -p 2023-2024:2023-2024 \
+ -p 8125:8125/udp \
+ -p 8126:8126 \
+ graphiteapp/graphite-statsd
+ 
+Seguire poi le istruzioni riportate sulla documentazione di Flink e ricordarsi
+in aggiunta di mettere la dipendenza da flink-metrics-dropwizard provided nel
+pom.xml, se si usa il relativo wrapper.
+
+
+
+
+
+
+ 
+ 

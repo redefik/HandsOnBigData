@@ -33,8 +33,8 @@ DataStream<String> inputStream = env.addSource(flinkKafkaConsumer);
 Per aggiungere un collettore Kafka al grafo si utilizza addSink() specificando
 come parametro di input un oggetto FlinkKafkaProducer<T>, dove T è il tipo di
 input.
-Il costruttore di FlinkKafkaConsumer riceve in input:
-- topic da cui sono prelevati i messaggi
+Il costruttore di FlinkKafkaProducer riceve in input:
+- topic in cui immettere i messaggi
 - un oggetto che implementa l'interfaccia KafkaSerializationSchema<T>
   esempio:
   public class KafkaSerializer implements KafkaSerializationSchema<String> {
