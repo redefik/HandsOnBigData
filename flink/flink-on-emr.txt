@@ -124,8 +124,8 @@ ssh -i <keypairs.pem> -N -D 8157 hadoop@<indirizzo_DNS_master>
 
 NOTA:
 8157 è una porta random inutilizzata sul localhost.
-A questo punto, per accedere all'interfaccia web basta andare da browser su
-http://localhost:8157
+
+A questo punto, l'interfaccia web sarà accessibile dalla console di AWS.
 
 Quando l'interfaccia non serve più, chiudere il terminale su cui è stato invocato
 il comando di ssh tunneling.
