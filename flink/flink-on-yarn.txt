@@ -1,0 +1,26 @@
+---------------
+|FLINK SU YARN|
+---------------
+
+Per eseguire un'applicazione Flink su YARN, occorre innanzitutto esportare le
+seguenti variabili d'ambienti:
+HADOOP_CONF_DIR -> directory contenente i file di configurazione di YARN e HDFS
+HADOOP_CLASSPATH -> fornisce a Flink le classi necessarie per l'interazione con
+                    YARN e l'HDFS.
+                    
+Dopodiché, si avvia una YARN SESSION. La YARN session coordina l'esecuzione dei
+JobManager e dei TaskManager
+
+bin/yarn-session.sh -tm <memoria per ogni task manager> -s <task slot per ogni tm> -d
+
+-d = avvio in modalità detached.
+
+Questo comando istanzia un Application Master contenente il JobManager Flink.
+Poi, quando si farà il submit di un programma, verranno istanziati anche i Task
+Manager necessari.
+
+Per fare submit di un programma Flink si usa il solito comando:
+bin/flink run ...
+
+Per stoppare la YARN session in modalità detached:
+echo "stop" | ./bin/yarn-session.sh -id <appId>
