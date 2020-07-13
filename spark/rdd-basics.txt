@@ -27,7 +27,7 @@ ELEMENT-WISE
  
 -flatMap():
  come una map() con la differenza che da ogni elemento del RDD padre
- vengono ricavati due o più output. In particolare, la funzione di
+ vengono ricavati zero, uno o più output. In particolare, la funzione di
  input deve restituire un'istanza di Iterator:
  JavaRDD<String> fileWords = fileLines.flatMap(l -> Arrays.asList(l.split(" ")).iterator());
  L'aggettivo "flat" indica il fatto che l'oggetto prodotto non è un RDD di liste
